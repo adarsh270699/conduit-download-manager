@@ -58,7 +58,7 @@ A single local agent that combines the `aria2c` engine, an embedded offline dash
 
 ## Accessibility and Inclusion
 
-- The dashboard targets WCAG 2.1 AA contrast for primary and status text.
+- Primary text meets WCAG 2.1 AA contrast. Success green (4.43:1 on canvas) and subtle ink (3.37:1 on canvas) do not meet the 4.5:1 requirement for normal text. [REVIEW REQUIRED]
 - Semantic table markup, explicit row labels, keyboard-navigable dialogs, focus trapping, and inert backgrounds are part of the dashboard shell.
 - Progress and status animations respect `prefers-reduced-motion`.
 - Setup and extension-guide pages keep a single visible path rather than presenting both browsers at once.

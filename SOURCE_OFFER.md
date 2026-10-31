@@ -12,8 +12,8 @@ outside GitHub, publish an equivalent source archive alongside it.
 
 ## Release checklist
 
-Attach the GitHub source archive for the release tag to the release page. No
-other source archive is needed, because the release files do not contain aria2
+Attach the GitHub source archive for the release tag to the release page. That archive meets the requirement above, so no other source archive is needed. The release
+files do not contain aria2
 or any other separately licensed engine.
 
 ## aria2 is not part of Conduit
@@ -42,4 +42,4 @@ The source for aria2 1.37.0 is at
 - Apache-2.0 components: `licenses/Apache-2.0.txt`
 
 If a source archive is missing or a link is unavailable, open an issue in the
-Conduit issue tracker and we will provide the corresponding source.
+Conduit issue tracker and we will provide the corresponding source. [REVIEW REQUIRED] This commitment needs review by the maintainers or legal counsel.

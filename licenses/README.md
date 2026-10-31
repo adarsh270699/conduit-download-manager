@@ -9,7 +9,7 @@ Conduit releases include.
 
 | Path | Component |
 | --- | --- |
-| `Apache-2.0.txt` | Apache-2.0 components, including `getlantern/systray`, `getlantern/golog`, and `getlantern/context` |
+| `Apache-2.0.txt` | Apache-2.0 components, including `fyne.io/systray` |
 | `OFL-1.1.txt` | IBM Plex Sans |
 | `go/` | Go module licenses |
 

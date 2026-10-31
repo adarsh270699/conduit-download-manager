@@ -19,7 +19,7 @@ Thanks for helping improve Conduit. This guide covers the local workflow, the qu
 - `desktop/` — Wails shell.
 - `extension/` — Manifest V3 extension and its Node tests.
 - `packaging/` — NSIS and Debian packaging.
-- `scripts/` - quick build scripts, engine fetch, and verification tooling.
+- `scripts/` — quick build scripts, engine fetch, and verification tooling.
 - `licenses/` - third-party license texts and Go module notices.
 - `docs/` - architecture, product, and design documentation. Keep user-facing setup in `README.md` and implementation detail in `docs/ARCHITECTURE.md`.
 
@@ -105,7 +105,7 @@ component in `THIRD_PARTY_NOTICES.md` and add its license text under
 ## Commit and pull request guidance
 
 - Keep each change focused. Separate refactors from behavior changes.
-- Use an imperative subject line: `fix(server): reject cross-site API requests`, not `fixed stuff`.
+- Use an imperative subject line: `fix(server): reject cross-site API requests`, not `fixed stuff`. [REVIEW REQUIRED] The recent commit history does not use a type prefix. Maintainers must choose one convention.
 - Explain why in the body, including any trade-offs or follow-up work.
 - Include the commands you ran and the result in the pull request description.
 - Link the issue when one exists.

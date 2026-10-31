@@ -30,9 +30,9 @@ The dashboard and setup pages embed `ibm-plex-sans-latin.woff2`:
 - License: SIL Open Font License, version 1.1
 - License text: [licenses/OFL-1.1.txt](licenses/OFL-1.1.txt)
 
-The font is embedded as a web asset and is not modified.
+The font is embedded as a web asset and is not modified. The extension popup and offline page name IBM Plex Sans but do not include the font file.
 
-## Go and JavaScript dependencies
+## Go dependencies
 
 The Go modules linked into the desktop and daemon binaries are listed in
 `desktop/go.sum` and `daemon/go.sum`. The exact linked versions and their

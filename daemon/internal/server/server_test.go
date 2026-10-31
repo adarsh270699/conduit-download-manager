@@ -849,6 +849,29 @@ func TestHTMLContentGuard(t *testing.T) {
 	if intendedItem.Status != "complete" {
 		t.Fatalf("expected status 'complete' for intended .html file, got %q (err: %s)", intendedItem.Status, intendedItem.ErrorMessage)
 	}
+
+	// 4. An XML feed that uses <header> and <title> is not an HTML page. The
+	// <head> check must match the tag itself, not the start of <header>.
+	feedFile := filepath.Join(tmpDir, "notes.xml")
+	feedContent := `<?xml version="1.0"?><rss version="2.0"><channel><title>Release notes</title><header>Notes for this release</header></channel></rss>`
+	if err := os.WriteFile(feedFile, []byte(feedContent), 0644); err != nil {
+		t.Fatalf("failed to write test feed file: %v", err)
+	}
+
+	feedStatus := aria.DownloadStatus{
+		GID:         "gid-xml-feed",
+		Status:      "complete",
+		TotalLength: int64(len(feedContent)),
+		Dir:         tmpDir,
+		Files: []aria.FileInfo{
+			{Path: feedFile},
+		},
+	}
+
+	feedItem := srv.mapToDownloadItem(feedStatus)
+	if feedItem.Status != "complete" {
+		t.Fatalf("expected status 'complete' for XML feed with <header>, got %q (err: %s)", feedItem.Status, feedItem.ErrorMessage)
+	}
 }
 
 func TestOpenFolderRequiresDownloadPath(t *testing.T) {

@@ -32,7 +32,7 @@ Conduit extension ── HTTP + WebSocket ──► 127.0.0.1:18800
 | :--- | :--- |
 | `daemon/cmd/main.go` | Headless daemon entry point, flags, signal handling, graceful shutdown. |
 | `daemon/internal/boot/` | Startup orchestration: lock, config, supervisor, HTTP server, shutdown. |
-| `daemon/internal/aria/` | Embedded Linux engine, Windows engine fetched at build time, extraction, process supervision, JSON-RPC client, ownership state, cleanup. |
+| `daemon/internal/aria/` | Engine discovery, process supervision, JSON-RPC client, engine ownership state, and cleanup. Conduit ships no engine. |
 | `daemon/internal/config/` | JSON settings, validation/clamping, autostart integration. |
 | `daemon/internal/instance/` | Per-config-directory single-instance file lock. |
 | `daemon/internal/server/` | REST handlers, CORS/origin policy, WebSocket hub, embedded web assets. |
@@ -65,7 +65,7 @@ Conduit extension ── HTTP + WebSocket ──► 127.0.0.1:18800
 7. Start the engine watcher. Every 2 seconds it checks that aria2 is running; if it exited (or never started) it restarts it with exponential backoff up to one minute and re-applies the saved settings. aria2's session file is saved every 30 seconds, so queued and paused work survives a restart.
 8. On exit, stop the watcher, stop the HTTP server, ask aria2 to shut down, interrupt/kill it if needed, and release the lock.
 
-The HTTP server stays up even when the engine fails to start. `/api/health` reports `engine: "starting"` until aria2's RPC answers and `"offline"` while it is down; download requests return `503` in both cases.
+The HTTP server stays up even when the engine fails to start. `/api/health` reports `engine: "starting"` until aria2's RPC answers and `"offline"` while it is down, and `"missing"` when no binary is found. Download requests return `503` in each of these states.
 
 ### Desktop app
 
@@ -102,11 +102,15 @@ Files inside the config directory:
 | Field | Type | Notes |
 | :--- | :--- | :--- |
 | `downloadDir` | string | Default destination. Empty updates keep the previous value. |
-| `maxConnections` | int | Clamped to 1–16; default 16. |
+| `maxConnections` | int | Default 16. Values outside 1–16 are set to 16. |
 | `maxConcurrentDownloads` | int | Default 5; no upper clamp. |
 | `autoStart` | bool | Mirrors the actual OS registration state on load. An existing entry is rewritten on load so it keeps the current executable path and `--background`. |
 | `maxDownloadLimit` | string | aria2-style limit: digits with an optional `K` or `M` (`"0"` = unlimited). Other values are rejected with `400`. |
 | `setupComplete` | bool, omitted | `false` runs the first-launch wizard. An existing file without the key is treated as already set up. |
+| `showOnStart` | bool | Default `true`. Shows the window when a download starts. |
+| `showOnComplete` | bool | Default `true`. Shows the window when a download completes. |
+| `showOnError` | bool | Default `true`. Shows the window when a download fails. |
+| `enginePath` | string, omitted | Optional. Must be an absolute path to `aria2c`. The search order is in [Build and Packaging](#build-and-packaging). |
 
 `PUT /api/config` merges the fields in the body into the current settings (absent fields keep their value), persists them, applies them to the live engine with `aria2.changeGlobalOption`, updates the OS autostart registration when that flag changes, and pushes the result to every WebSocket client. A failure to apply an option to a running engine is logged; the setting is still saved for the next start.
 
@@ -123,14 +127,14 @@ Unknown browser origins receive `403` before a handler runs. Requests without an
 
 | Method | Path | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/health` | Returns `app`, `status`, `version`, and `engine` (`ready`, `starting`, `offline`). |
+| `GET` | `/api/health` | Returns `app`, `status`, `version`, and `engine` (`ready`, `starting`, `offline`, or `missing`). |
 | `POST` | `/api/app/show` | Loopback only. Shows the open desktop window. |
 | `POST` | `/api/app/quit` | Loopback only. Requests application shutdown. |
 | `GET` | `/api/extension` | Loopback only. Returns `{path, exists}` for the installed extension folder. |
 | `POST` | `/api/extension/open-guide` | Loopback only. Opens `/extension` in the system browser. |
 | `GET` | `/api/downloads` | Lists active, waiting, paused, and stopped downloads. |
 | `POST` | `/api/downloads` | Enqueues `{url, filename?, cookies?, referrer?, userAgent?}`. URL schemes are limited to HTTP, HTTPS, and FTP. Returns `201 {gid}`. |
-| `POST` | `/api/downloads/{gid}/action` | Actions: `pause`, `resume`, `retry`, `remove` (`deleteFile: true` also deletes the file), `open_folder`, `change_dir` (`newDir` required), `move_up`, `move_down`. |
+| `POST` | `/api/downloads/{gid}/action` | Actions: `pause`, `resume`, `retry`, `remove` (`deleteFile: true` also deletes the file), `open_folder`, `open_file`, `change_dir` (`newDir` required), `move_up`, `move_down`. |
 | `GET` | `/api/config` | Returns the current configuration. |
 | `PUT` | `/api/config` | Merges, validates, persists, applies, and broadcasts configuration. |
 | `GET` | `/api/ws` | WebSocket stream of `{type, …}` frames: `{"type":"config","config":{…}}` on connect and whenever settings change, and `{"type":"downloads","downloads":[…]}` on connect and every second. |
@@ -185,7 +189,7 @@ The extension assumes the daemon's default port `18800`. If the daemon is starte
 Prerequisites and exact commands are in [README.md](../README.md) and [CONTRIBUTING.md](../CONTRIBUTING.md). At a high level:
 
 - `scripts/build_windows.ps1` builds the native app, extension zip, and NSIS installer.
-- `scripts/build_linux.sh` builds the native app and extension zip. There is no Linux installer yet.
+- `scripts/build_linux.sh` builds the native app and extension zip. It builds the `.deb` only when `nfpm` is installed.
 - `make all` cleans `dist/`, packages the extension, and cross-compiles Linux and Windows headless daemons with `CGO_ENABLED=0`.
 
 Conduit ships no aria2c. The daemon looks for `aria2c` in this order: the `CONDUIT_ARIA2C` environment variable; `enginePath` in `config.json`; `engine\aria2c.exe` beside the Windows executable (written by the installer); `bin/aria2c` in the config directory (placed by hand); then the system `PATH` (the Linux `.deb` depends on `aria2`). The first two are explicit settings: if they point at a missing file, the engine is reported missing rather than falling back to another binary. Only the installer and config-directory locations count as Conduit-managed, so the process sweep never stops an aria2c that Conduit did not start from one of them. `scripts/download_aria2_binaries.ps1` fills `.cache/aria2/windows/` with the pinned build for Windows tests. Linux tests use the aria2 package. When no engine is found, `/api/health` reports `"engine": "missing"` with an `engineHint`, and the daemon keeps checking, so an engine placed by hand is picked up without a restart.

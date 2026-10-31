@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -706,6 +707,14 @@ func (s *Server) checkHTMLContent(gid string, item aria.DownloadStatus, filename
 	return isErr, errMsg
 }
 
+// htmlHeadTag and htmlTitleTag match the tags themselves. A plain substring
+// match would also flag <header> as <head>, which breaks XML feeds and other
+// markup that a user downloads on purpose.
+var (
+	htmlHeadTag  = regexp.MustCompile(`<head[\s>]`)
+	htmlTitleTag = regexp.MustCompile(`<title[\s>]`)
+)
+
 func isUnexpectedHTMLContent(filePath, filename string, totalBytes int64) (bool, string) {
 	if filePath == "" || totalBytes > 2*1024*1024 || totalBytes <= 0 {
 		return false, ""
@@ -733,7 +742,7 @@ func isUnexpectedHTMLContent(filePath, filename string, totalBytes int64) (bool,
 
 	if strings.HasPrefix(trimmed, "<!doctype html") ||
 		strings.HasPrefix(trimmed, "<html") ||
-		(strings.Contains(trimmed, "<head") && strings.Contains(trimmed, "<title")) {
+		(htmlHeadTag.MatchString(trimmed) && htmlTitleTag.MatchString(trimmed)) {
 		title := extractHTMLTitle(content)
 		if title != "" {
 			return true, fmt.Sprintf("Server returned an HTML error/landing page (%q) instead of the requested file", title)

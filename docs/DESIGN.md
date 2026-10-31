@@ -6,6 +6,8 @@ colors:
   primary-hover: "#264972"
   primary-pressed: "#1D3858"
   secondary: "#F2765E"
+  secondary-hover: "#DF634A"
+  secondary-pressed: "#C75139"
   canvas: "#F5EBDD"
   surface-1: "#EFE4D4"
   ink: "#413333"
@@ -291,8 +293,8 @@ The palette establishes an organic, warm editorial tone while maintaining rigoro
 
 ### Text & Ink
 - **Ink** (`{colors.ink}`: `#413333`): All headlines, primary labels, and emphasized body type — deep roasted espresso charcoal. Superb contrast on Canvas (10.20:1, exceeding WCAG AAA).
-- **Ink Muted** (`{colors.ink-muted}`: `#685959`): Secondary type — metadata, sub-headlines, timestamps, captions (contrast > 5.5:1 on Canvas).
-- **Ink Subtle** (`#8C7C7C`): Tertiary type — helper text, placeholder text, disabled states (contrast > 4.5:1 on Canvas).
+- **Ink Muted** (`{colors.ink-muted}`: `#685959`): Secondary type — metadata, sub-headlines, timestamps, captions (5.63:1 on Canvas).
+- **Ink Subtle** (`#8C7C7C`): Tertiary type — helper text, placeholder text, disabled states (3.37:1 on Canvas, below the 4.5:1 that WCAG AA requires for normal text). [REVIEW REQUIRED]
 - **Inverse Ink** (`{colors.inverse-ink}`: `#F5EBDD`): Warm cream on dark espresso — footer headings, inverted hero text (10.20:1 contrast).
 - **Inverse Ink Muted** (`{colors.inverse-ink-muted}`: `#CBBFA9`): Warm muted sand on dark espresso — footer links, secondary footer body.
 
@@ -301,7 +303,7 @@ The palette establishes an organic, warm editorial tone while maintaining rigoro
 - **On Secondary** (`{colors.on-secondary}`: `#231818`): Deep roasted ink on coral (6.19:1 contrast, passing WCAG AA for normal and large text). High-contrast UI pairing `#413333` achieves 4.31:1.
 
 ### Semantic
-- **Success Green** (`#2D7A54`): Deep earthy green for completed tasks and online states (contrast > 4.5:1 on Canvas).
+- **Success Green** (`#2D7A54`): Deep earthy green for completed tasks and online states (4.43:1 on Canvas, below the 4.5:1 that WCAG AA requires for normal text). [REVIEW REQUIRED]
 - **Warning Amber** (`#D97706`): Warm amber for paused states and warnings.
 - **Error Red** (`{colors.semantic-error}`: `#B83A2E`): Burnt crimson red for destructive actions, error badges, danger buttons.
 - **Info Blue** (`#315B8C`): Aligned with primary slate blue.
@@ -336,7 +338,7 @@ The same family carries display, body, and caption. Hierarchy is carried by **si
 ### Principles
 
 - **Light-weight display is the brand voice.** Plex Sans at weight 300 for 76px headlines reads as quietly authoritative — switching to 700 would make it look like every other generic tech site.
-- **Carbon`s `letter-spacing: 0.16px`** on body sizes is a precision detail. Do not remove it.
+- **Carbon's `letter-spacing: 0.16px`** on body sizes is a precision detail. Do not remove it.
 - **Eyebrow typography uses sentence case 14px** — avoids aggressive all-caps tracking.
 - **Line-heights tighten on display, relax on body**: 1.17 at display-xl, 1.50 at body.
 
@@ -465,7 +467,7 @@ The system commits to flat 0px corners as its primary architectural signature.
 **`footer`** — Inverted Roasted Espresso footer.
 - Background `{colors.inverse-canvas}`, text `{colors.inverse-ink-muted}`, type `{typography.body-sm}`, padding 64px 32px.
 
-## Do`s and Don`ts
+## Dos and Don'ts
 
 ### Do
 
@@ -478,14 +480,14 @@ The system commits to flat 0px corners as its primary architectural signature.
 - Use surface stepping (`canvas` → `surface-1`) and 1px hairlines (`#DFD0BD`) for hierarchy. Skip diffuse drop shadows.
 - Invert to `{colors.inverse-canvas}` (`#413333`) at the footer with `{colors.inverse-ink-muted}` (`#CBBFA9`).
 
-### Don`t
+### Don't
 
-- Don`t use pure white (`#FFFFFF`) or cold neutral grays (`#161616`, `#F4F4F4`); adhere strictly to the warm parchment and roasted espresso foundation.
-- Don`t use light or white text on `{colors.secondary}` (`#F2765E`); always use `{colors.on-secondary}` (`#231818` / `#413333`) to ensure high contrast (>4.3:1).
-- Don`t round corners on buttons, cards, or inputs. Flat 0px geometry is essential to the brand.
-- Don`t bold display headlines. Plex Sans at weight 300 is the brand voice; weight 700 makes it generic.
-- Don`t add atmospheric diffuse shadows or glossy glassmorphism.
-- Don`t introduce arbitrary third or fourth accent hues outside the documented palette (`#F5EBDD`, `#F2765E`, `#315B8C`, `#413333`).
+- Don't use pure white (`#FFFFFF`) or cold neutral grays (`#161616`, `#F4F4F4`); adhere strictly to the warm parchment and roasted espresso foundation.
+- Don't use light or white text on `{colors.secondary}` (`#F2765E`); always use `{colors.on-secondary}` (`#231818` / `#413333`) to ensure high contrast (>4.3:1).
+- Don't round corners on buttons, cards, or inputs. Flat 0px geometry is essential to the brand.
+- Don't bold display headlines. Plex Sans at weight 300 is the brand voice; weight 700 makes it generic.
+- Don't add atmospheric diffuse shadows or glossy glassmorphism.
+- Don't introduce arbitrary third or fourth accent hues outside the documented palette (`#F5EBDD`, `#F2765E`, `#315B8C`, `#413333`).
 
 ## Responsive Behavior
 
@@ -498,6 +500,8 @@ The system commits to flat 0px corners as its primary architectural signature.
 | Desktop | 1056px | Card grid 4-up maintained |
 | Tablet | 672px | Card grid 4-up → 2-up; nav becomes hamburger |
 | Mobile | 320px | Single-column; display-xl scales 76px → ~32px |
+
+The dashboard CSS in `daemon/internal/server/web/styles.css` uses media queries at 1000, 900, 640, and 380 px. The breakpoints in this table are design targets. [REVIEW REQUIRED]
 
 ### Touch Targets
 

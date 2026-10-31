@@ -76,7 +76,7 @@ refused.
 
 4. **Watch the Release workflow.** It:
    - checks the tag against VERSION and CHANGELOG, and that the commit is on `main`;
-   - builds and tests on Ubuntu 24.04 and Windows (unit, integration, desktop, `.deb` install, installer install/launch/upgrade/uninstall);
+   - builds and tests on Ubuntu 24.04 and Windows (unit, integration, desktop, `.deb` install, installer install, launch, and uninstall, and upgrade when an earlier release exists);
    - writes `SHA256SUMS.txt` and signed build provenance for every file;
    - creates a draft release, uploads everything, then publishes it as the latest release.
 
@@ -92,7 +92,7 @@ Bump to `1.3.0-rc.1`, merge, tag `v1.3.0-rc.1`. The workflow publishes a
 GitHub **prerelease**, which is never shown as the latest release. Fix,
 bump to `-rc.2`, and repeat. When it is ready, bump to `1.3.0` (the
 changelog section of the last candidate can be reused by moving its lines
-back under Unreleased) and tag `v1.3.0`.
+back under Unreleased) and tag `v1.3.0`. [REVIEW REQUIRED] The release tool does not automate this step. Confirm the procedure before the first release candidate.
 
 ### Hotfix on an older line
 

@@ -11,7 +11,7 @@ Conduit is a cross-platform download accelerator for Windows and Linux. A local 
 - **Offline holding queue** in the extension. When the daemon is unavailable, downloads are paused and held locally, then forwarded automatically when it returns.
 - **Native app on both platforms**: a Wails window with WebView2 on Windows and WebKitGTK on Ubuntu, plus system tray and per-user autostart.
 - **One local API**: REST plus a WebSocket status stream on `127.0.0.1:18800`, documented below.
-- **No cloud, accounts, telemetry, ads, or Electron.** All UI assets and fonts are embedded.
+- **No cloud, accounts, telemetry, ads, or Electron.** The dashboard embeds its UI assets and fonts. The extension popup and offline page name IBM Plex Sans but do not embed it.
 - **Pause, resume, retry, remove, reorder, open folder, change destination, delete file, speed limit, per-site exclusions.**
 
 ## Architecture
@@ -103,14 +103,14 @@ The daemon listens on `127.0.0.1:18800` only. Requests from browsers must carry 
 
 | Method | Path | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/health` | `{app, status, version, engine}`; `engine` is `ready`, `starting`, or `offline`. |
+| `GET` | `/api/health` | `{app, status, version, engine}`. `engine` is `ready`, `starting`, `offline`, or `missing`. `missing` means that no aria2c binary was found. |
 | `POST` | `/api/app/show` | Loopback only. Shows the running desktop window. |
 | `POST` | `/api/app/quit` | Loopback only. Requests shutdown. |
 | `GET` | `/api/extension` | Loopback only. Returns `{path, exists}` for the extension folder. |
 | `POST` | `/api/extension/open-guide` | Loopback only. Opens the extension guide in the system browser. |
 | `GET` | `/api/downloads` | Lists active, waiting, paused, and stopped downloads. |
 | `POST` | `/api/downloads` | Enqueues `{url, filename?, cookies?, referrer?, userAgent?}`. HTTP/HTTPS/FTP only. Returns `201 {gid}`. |
-| `POST` | `/api/downloads/{gid}/action` | `pause`, `resume`, `retry`, `remove` (`deleteFile`), `open_folder`, `change_dir` (`newDir`), `move_up`, `move_down`. |
+| `POST` | `/api/downloads/{gid}/action` | `pause`, `resume`, `retry`, `remove` (`deleteFile`), `open_folder`, `open_file`, `change_dir` (`newDir`), `move_up`, `move_down`. |
 | `GET` | `/api/config` | Returns the current configuration. |
 | `PUT` | `/api/config` | Persists and applies configuration to the live engine. |
 | `GET` | `/api/ws` | WebSocket stream of the download list, sent on connect and every second. |
@@ -130,11 +130,15 @@ curl -s -X POST http://127.0.0.1:18800/api/downloads \
 | Field | Type | Notes |
 | :--- | :--- | :--- |
 | `downloadDir` | string | Default destination folder. |
-| `maxConnections` | int | 1–16; default 16. |
+| `maxConnections` | int | 1–16; default 16. Values outside 1–16 are set to 16. |
 | `maxConcurrentDownloads` | int | Default 5. |
 | `autoStart` | bool | Mirrors the OS startup registration. |
 | `maxDownloadLimit` | string | aria2-style limit; `"0"` disables it. |
 | `setupComplete` | bool | `false` shows the first-run wizard. |
+| `showOnStart` | bool | Default `true`. Shows the window when a download starts. |
+| `showOnComplete` | bool | Default `true`. Shows the window when a download completes. |
+| `showOnError` | bool | Default `true`. Shows the window when a download fails. |
+| `enginePath` | string | Optional. Absolute path to `aria2c`. When empty, Conduit uses the search order in `docs/ARCHITECTURE.md`. |
 
 ## Build from source
 
@@ -157,7 +161,7 @@ The Windows download URL and SHA-256 are pinned in `scripts/aria2_binaries.env`.
 
 ### Quick build scripts
 
-These build the native app and extension zip in one step. Both scripts also create a standalone zip that includes the license bundle. The Windows script also builds the NSIS installer; Linux has no installer yet. The Windows script uses .NET to write Explorer-readable zip files (not `tar -a`); the Linux script uses `zip` or falls back to `python3`.
+These build the native app and extension zip in one step. Both scripts also create a standalone zip that includes the license bundle. The Windows script also builds the NSIS installer. The Linux script builds the `.deb` only when `nfpm` is installed. The Windows script uses .NET to write Explorer-readable zip files (not `tar -a`); the Linux script uses `zip` or falls back to `python3`.
 
 **Windows (PowerShell):**
 
@@ -184,8 +188,9 @@ Outputs:
 - `dist/Conduit-linux-amd64-standalone.zip` (app + license bundle)
 - `dist/Conduit-linux-amd64-standalone`
 - `dist/conduit-extension.zip`
+- `dist/conduit_<version>_amd64.deb` (only when `nfpm` is installed)
 
-No Linux installer is produced yet. Run the Linux script on Ubuntu 24.04 with the GTK 3, WebKitGTK 4.1, and `libayatana-appindicator3` development packages listed above. The Linux Wails build passes `-tags webkit2_41` because Wails defaults to WebKitGTK 4.0.
+Run the Linux script on Ubuntu 24.04 with the GTK 3, WebKitGTK 4.1, and `libayatana-appindicator3` development packages listed above. The Linux Wails build passes `-tags webkit2_41` because Wails defaults to WebKitGTK 4.0.
 
 ### Commands
 
@@ -272,7 +277,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#security-model) for the full thr
 
 ## Known limitations
 
-- `retry` and `change_dir` re-enqueue using the URI list only; cookies, referrer, and user agent cannot be recovered from aria2 and are not restored.
+- `retry` and `change_dir` re-enqueue the download with its original URIs. Cookies, referrer, and user agent are read back from aria2 options. A cookie that has expired since the download started still fails.
 - The extension is fixed to port 18800 and cannot follow a custom `--http-port`.
 - BitTorrent, magnet links, and metalinks are out of scope for v1.
 - A native Chromium "Save As" dialog can let the browser finish before Conduit pauses a download; in that case the browser copy is kept and not queued.
