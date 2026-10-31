@@ -14,6 +14,7 @@ import (
 	"conduit/daemon/internal/aria"
 	"conduit/daemon/internal/config"
 	"conduit/daemon/internal/platform"
+	"conduit/daemon/internal/updater"
 	"conduit/daemon/version"
 )
 
@@ -56,6 +57,8 @@ type Server struct {
 	openURL        func(string) error
 	engineStatus   func() string
 	engineHint     func() string
+	updates        *updater.Service
+	stopSchedule   context.CancelFunc
 	seenMu         sync.Mutex
 	seenStatus     map[string]string // last status per gid, for window pop-ups
 }
@@ -89,6 +92,10 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("POST /api/downloads/{gid}/action", s.handleDownloadAction)
 	mux.HandleFunc("GET /api/config", s.handleGetConfig)
 	mux.HandleFunc("PUT /api/config", s.handleUpdateConfig)
+	mux.HandleFunc("GET /api/update", s.handleGetUpdate)
+	mux.HandleFunc("POST /api/update/check", s.handleCheckUpdate)
+	mux.HandleFunc("POST /api/update/download", s.handleDownloadUpdate)
+	mux.HandleFunc("POST /api/update/install", s.handleInstallUpdate)
 
 	// Mount embedded static dashboard
 	webHandler, err := getWebHandler()
@@ -239,7 +246,11 @@ func (s *Server) Start() error {
 
 	go s.wsHub.Run(context.Background())
 
+	scheduleCtx, cancelSchedule := context.WithCancel(context.Background())
+	go s.runUpdateSchedule(scheduleCtx)
+
 	s.mu.Lock()
+	s.stopSchedule = cancelSchedule
 	s.listener = ln
 	s.httpServer = &http.Server{
 		Handler:      s.Routes(),
@@ -265,6 +276,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// handlers take the same lock, which would deadlock until ctx expires.
 	s.mu.Lock()
 	httpServer := s.httpServer
+	if s.stopSchedule != nil {
+		s.stopSchedule()
+	}
 	s.mu.Unlock()
 	if httpServer != nil {
 		return httpServer.Shutdown(ctx)

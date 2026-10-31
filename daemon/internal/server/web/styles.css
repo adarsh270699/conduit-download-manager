@@ -1410,6 +1410,23 @@ form {
   margin-top: 2px;
 }
 
+/* Updates: the installed version, then the result of the last step. */
+.update-summary {
+  margin: 0 0 var(--space-2);
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.update-detail.is-error {
+  color: var(--status-error);
+}
+
+.check-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* Floating Toasts */
 .toast-container {
   position: fixed;

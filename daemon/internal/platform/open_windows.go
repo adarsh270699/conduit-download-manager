@@ -49,7 +49,8 @@ func nativePath(targetPath string) string {
 	return abs
 }
 
-func startDetached(name string, args []string) error {
+// StartDetached starts name with args and does not wait for it to exit.
+func StartDetached(name string, args []string) error {
 	if strings.EqualFold(name, "explorer.exe") && len(args) == 1 {
 		if strings.HasPrefix(args[0], "/select,") {
 			return selectItemFn(strings.TrimPrefix(args[0], "/select,"))

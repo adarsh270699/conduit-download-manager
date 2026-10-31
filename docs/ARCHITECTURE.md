@@ -93,6 +93,8 @@ Files inside the config directory:
 | `aria2.session` | aria2's paused/waiting session, preserved across restarts. |
 | `engine.json` | PID, process creation time, boot ID, binary path, RPC port/secret, start time. Used to stop an engine that survived a crash. Mode `0600`. |
 | `instance.lock` | OS file lock that guarantees one daemon per config directory. |
+| `update.json` | Update check state: last check time, latest version, and the downloaded installer's path and SHA-256. Written atomically through a temporary file. The updater never writes `config.json` or `aria2.session`. |
+| `updates/<version>/` | Installers downloaded by the updater. Keep-mode uninstall removes them; purge removes everything. |
 | `bin/aria2c` or `bin/aria2c.exe` | Optional. An engine placed by hand. Conduit never writes here. |
 
 ## Configuration
@@ -110,6 +112,8 @@ Files inside the config directory:
 | `showOnStart` | bool | Default `true`. Shows the window when a download starts. |
 | `showOnComplete` | bool | Default `true`. Shows the window when a download completes. |
 | `showOnError` | bool | Default `true`. Shows the window when a download fails. |
+| `autoCheckUpdates` | bool | Default `false`. Checks GitHub for a newer release about once a day and tells open dashboards when one is found. A failed check is retried after an hour. |
+| `autoInstallUpdates` | bool | Default `false`. Downloads and installs a found release without asking. Implies `autoCheckUpdates`. Installs only from a copy that the Windows setup or the `.deb` installed, and waits while downloads are running. |
 | `enginePath` | string, omitted | Optional. Must be an absolute path to `aria2c`. The search order is in [Build and Packaging](#build-and-packaging). |
 
 `PUT /api/config` merges the fields in the body into the current settings (absent fields keep their value), persists them, applies them to the live engine with `aria2.changeGlobalOption`, updates the OS autostart registration when that flag changes, and pushes the result to every WebSocket client. A failure to apply an option to a running engine is logged; the setting is still saved for the next start.
@@ -137,8 +141,16 @@ Unknown browser origins receive `403` before a handler runs. Requests without an
 | `POST` | `/api/downloads/{gid}/action` | Actions: `pause`, `resume`, `retry`, `remove` (`deleteFile: true` also deletes the file), `open_folder`, `open_file`, `change_dir` (`newDir` required), `move_up`, `move_down`. |
 | `GET` | `/api/config` | Returns the current configuration. |
 | `PUT` | `/api/config` | Merges, validates, persists, applies, and broadcasts configuration. |
-| `GET` | `/api/ws` | WebSocket stream of `{type, …}` frames: `{"type":"config","config":{…}}` on connect and whenever settings change, and `{"type":"downloads","downloads":[…]}` on connect and every second. |
+| `GET` | `/api/update` | Loopback only. Returns `state` (`idle`, `checking`, `upToDate`, `available`, `downloading`, `downloaded`, `installing`, or `error`), `currentVersion`, `latestVersion`, `progress` (`done` and `total` bytes), `error`, `lastCheckedAt`, and `installable` (whether this copy can install an update). Returns `503` if the update service did not start. |
+| `POST` | `/api/update/check` | Loopback only. Asks GitHub for the latest stable release and returns the status. While another update step runs, it returns that step's status without sending a request. |
+| `POST` | `/api/update/download` | Loopback only. Starts downloading the installer for this OS in the background and returns `202`. Returns `409` unless the state is `available`. The installer must match its entry in `SHA256SUMS.txt` from the same release. |
+| `POST` | `/api/update/install` | Loopback only. Re-verifies the downloaded installer, queues it, returns `202`, and quits Conduit. The installer starts after Conduit has released its files and lock. Returns `409` when nothing is downloaded, the install channel is not supported, or a download is active. |
+| `GET` | `/api/ws` | WebSocket stream of `{type, …}` frames: `{"type":"config","config":{…}}` on connect and whenever settings change, and `{"type":"downloads","downloads":[…]}` on connect and every second, and `{"type":"update","update":{…}}` on connect and whenever the update status changes. |
 | `GET` | `/` | Embedded dashboard. `/setup` and `/extension` are the wizard and guide pages. |
+
+The update routes read GitHub's release feed. Two environment variables change where the feed is read, and both are for testing. `CONDUIT_UPDATE_API` replaces the API base. `CONDUIT_UPDATE_DOWNLOAD_HOSTS` adds comma-separated hosts that installers may be downloaded from; plain HTTP is allowed only for loopback hosts in that list. The daemon logs a warning when the second is set.
+
+With `autoCheckUpdates` or `autoInstallUpdates` on, the daemon runs its own schedule, so the checks happen even with no dashboard open. The first check comes about a minute after start if one is due, then one check a day, or one an hour after a failed check. Every minute the schedule reads the two settings, so a change applies without a restart.
 
 Download objects contain `gid`, `filename`, `status`, `totalLength`, `completedLength`, `downloadSpeed`, `dir`, `errorMessage`, and `connections`. Completed files smaller than 2 MB are inspected for an HTML landing/error page; such items are reported as `error` instead of `complete`.
 
@@ -224,4 +236,9 @@ CI runs formatting, vet, race-enabled unit and integration tests, extension test
 - The Windows uninstaller leaves the shared WebView2 Runtime installed and cannot remove the browser extension.
 - The `.deb` has no maintainer script to stop a running instance or remove the per-user autostart entry; `README.md` documents the manual step.
 - v1 does not support BitTorrent, magnet links, metalinks, or multiple simultaneous daemons for one config directory.
+- Updates on Linux need one password prompt from `pkexec`, so they are not silent. With `autoInstallUpdates` on, that prompt can appear without a click. Portable Windows copies and development builds can check and download, but install returns `409`.
+- Automatic install restarts Conduit as soon as a downloaded update is ready and no download is running. Automatic checks notify only through an open dashboard; there is no OS notification.
+- The Windows installer is unsigned, and `SHA256SUMS.txt` comes from the same release. The check catches corruption and tampering in transit, not a compromised release. `gh attestation verify` is the stronger check and is not run yet.
+- An interrupted update download starts over; it does not resume.
+- Update checks use GitHub's unauthenticated API, which allows 60 requests an hour per IP address. Conditional requests keep repeat checks inside that limit.
 - `go test` targets Windows and Linux. Other operating systems are not supported.

@@ -214,6 +214,24 @@ Section "Uninstall"
   ReminderDone:
 SectionEnd
 
+; Silent installs skip the finish page, so its launch checkbox never runs. The
+; update pipeline passes /LAUNCH to start Conduit once the install is done;
+; /LAUNCH=background starts it in the tray instead of with a window.
+Function .onInstSuccess
+  ${GetParameters} $R0
+  ${GetOptions} $R0 "/LAUNCH=" $R1
+  ${IfNot} ${Errors}
+    ${If} $R1 == "background"
+      Exec '"$INSTDIR\Conduit.exe" --background'
+    ${EndIf}
+    Return
+  ${EndIf}
+  ${GetOptions} $R0 "/LAUNCH" $R2
+  ${IfNot} ${Errors}
+    Exec '"$INSTDIR\Conduit.exe"'
+  ${EndIf}
+FunctionEnd
+
 ; .onInit looks for an earlier install. /CLEAN on the command line selects a
 ; clean install for silent runs; silent runs otherwise update in place.
 ; /NOARIA2 skips the aria2 download. The engine can be placed by hand later.
@@ -242,9 +260,24 @@ Function .onInit
   ${IfNot} ${Errors}
     StrCpy $SkipAria2 "1"
   ${EndIf}
+
+  ; The desktop shortcut section is selected by default. An update run with /S
+  ; would recreate a shortcut the user deleted, so it stays unselected unless the
+  ; shortcut already exists. Fresh installs keep the default.
+  IfSilent 0 SilentDesktopDone
+  ${If} $ExistingDir != ""
+    SetShellVarContext current
+    IfFileExists "$DESKTOP\Conduit.lnk" SilentDesktopDone 0
+    SectionSetFlags ${SecDesktop} 0
+  ${EndIf}
+  SilentDesktopDone:
 FunctionEnd
 
 Function ExistingInstallPage
+  ; Silent installs update in place, so there is no question to ask. Without
+  ; this, a silent update over an existing install could wait on this page.
+  IfSilent 0 +2
+  Abort
   ${If} $ExistingDir == ""
     Abort
   ${EndIf}
@@ -320,10 +353,17 @@ FunctionEnd
 
 ; The download engine comes from the pinned upstream release. aria2.ps1 checks
 ; its SHA-256. A failure is not fatal: Conduit still installs and reports the
-; engine as missing until the user places aria2c.exe by hand.
+; engine as missing until the user places aria2c.exe by hand. The marker
+; engine\aria2.sha256 records the pinned hash the engine came from, so an update
+; with the same pin keeps the engine and a new pin downloads it again.
 Function EnsureAria2
   ${If} $SkipAria2 == "1"
     DetailPrint "Skipping the aria2 download engine (/NOARIA2)."
+    Return
+  ${EndIf}
+  Call Aria2IsCurrent
+  ${If} $0 == "1"
+    DetailPrint "The aria2 download engine matches this release; keeping it."
     Return
   ${EndIf}
   DetailPrint "Installing the aria2 download engine"
@@ -332,7 +372,31 @@ Function EnsureAria2
   ExecWait 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PLUGINSDIR\aria2.ps1" -Url "${ARIA2_WIN_URL}" -Sha256 "${ARIA2_WIN_SHA256}" -Destination "$INSTDIR\engine\aria2c.exe"' $0
   ${If} $0 != 0
     Call Aria2ManualNotice
+  ${Else}
+    Call WriteAria2Marker
   ${EndIf}
+FunctionEnd
+
+; Sets $0 to "1" when the engine exists and its marker holds the pinned hash.
+Function Aria2IsCurrent
+  StrCpy $0 "0"
+  IfFileExists "$INSTDIR\engine\aria2c.exe" 0 Aria2NotCurrent
+  IfFileExists "$INSTDIR\engine\aria2.sha256" 0 Aria2NotCurrent
+  FileOpen $1 "$INSTDIR\engine\aria2.sha256" r
+  FileRead $1 $2
+  FileClose $1
+  ${If} $2 == "${ARIA2_WIN_SHA256}"
+    StrCpy $0 "1"
+  ${EndIf}
+  Aria2NotCurrent:
+FunctionEnd
+
+; Written only after aria2.ps1 succeeds, so a failed download never looks current.
+Function WriteAria2Marker
+  CreateDirectory "$INSTDIR\engine"
+  FileOpen $1 "$INSTDIR\engine\aria2.sha256" w
+  FileWrite $1 "${ARIA2_WIN_SHA256}"
+  FileClose $1
 FunctionEnd
 
 Function Aria2ManualNotice

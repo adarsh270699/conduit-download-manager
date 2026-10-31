@@ -117,6 +117,8 @@ func main() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			_ = running.Shutdown(ctx)
+			// The daemon has released its lock, so a queued installer can run now.
+			_ = running.LaunchPendingInstall()
 			os.Exit(0)
 		}()
 	})
@@ -155,6 +157,10 @@ func main() {
 		cancel()
 		showError("Conduit", fmt.Sprintf("Failed to open the Conduit window:\n\n%v", err))
 	}
+
+	// Window mode has shut the daemon down by the time wails.Run returns, on
+	// either branch above. Start a queued installer, if there is one.
+	_ = running.LaunchPendingInstall()
 }
 
 type healthInfo struct {

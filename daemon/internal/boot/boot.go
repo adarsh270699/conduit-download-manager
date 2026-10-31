@@ -15,6 +15,7 @@ import (
 	"conduit/daemon/internal/config"
 	"conduit/daemon/internal/instance"
 	"conduit/daemon/internal/server"
+	"conduit/daemon/internal/updater"
 )
 
 // ErrAlreadyRunning is returned when another Conduit process owns the
@@ -38,12 +39,14 @@ var (
 
 // Running is a started daemon. EngineErr is set when aria2 did not start.
 // The HTTP server is still up in that case so the window can report the engine,
-// and the engine watcher keeps trying to bring aria2 up.
+// and the engine watcher keeps trying to bring aria2 up. Updater is nil only if
+// the update service could not be built; the rest of the daemon still runs.
 type Running struct {
 	Config     *config.Manager
 	Supervisor *aria.Supervisor
 	Server     *server.Server
 	RPC        *aria.Client
+	Updater    *updater.Service
 	EngineErr  error
 	Lock       *instance.Lock
 
@@ -128,6 +131,17 @@ func Start(ctx context.Context, opts Options) (*Running, error) {
 		watchDone: make(chan struct{}),
 	}
 
+	updates, err := updater.New(updater.Options{
+		ConfigDir:     configDir,
+		Downloads:     running.RPC,
+		EngineRunning: sup.IsRunning,
+	})
+	if err != nil {
+		log.Printf("Warning: update service unavailable: %v", err)
+	} else {
+		running.Updater = updates
+	}
+
 	if err := running.startEngine(ctx); err != nil {
 		running.EngineErr = err
 		log.Printf("Warning: aria2 did not start: %v", err)
@@ -138,6 +152,7 @@ func Start(ctx context.Context, opts Options) (*Running, error) {
 	srv := server.NewServer(opts.HTTPPort, running.RPC, cfgMgr)
 	srv.SetEngineStatus(sup.EngineState)
 	srv.SetEngineHint(sup.EngineHint)
+	srv.SetUpdater(running.Updater)
 	if err := srv.Start(); err != nil {
 		_ = sup.Stop()
 		return nil, fmt.Errorf("failed to start HTTP server: %w", err)

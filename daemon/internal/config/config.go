@@ -32,6 +32,13 @@ type Config struct {
 	ShowOnStart            bool   `json:"showOnStart"`
 	ShowOnComplete         bool   `json:"showOnComplete"`
 	ShowOnError            bool   `json:"showOnError"`
+	// AutoCheckUpdates checks GitHub for a newer release about once a day and
+	// tells open dashboards when one is found. Off by default: it is the only
+	// setting that makes Conduit contact GitHub without a click.
+	AutoCheckUpdates bool `json:"autoCheckUpdates"`
+	// AutoInstallUpdates downloads and installs a newer release without asking.
+	// It implies AutoCheckUpdates.
+	AutoInstallUpdates bool `json:"autoInstallUpdates"`
 	// EnginePath optionally names the aria2c binary to run. Empty finds it automatically.
 	EnginePath string `json:"enginePath,omitempty"`
 }

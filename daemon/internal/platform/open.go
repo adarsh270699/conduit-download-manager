@@ -12,7 +12,7 @@ import (
 type CommandRunner func(name string, args ...string) error
 
 func defaultRunner(name string, args ...string) error {
-	return startDetached(name, args)
+	return StartDetached(name, args)
 }
 
 // startAndReap starts a short-lived helper process and waits for it in the

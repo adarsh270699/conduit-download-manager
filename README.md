@@ -138,6 +138,8 @@ curl -s -X POST http://127.0.0.1:18800/api/downloads \
 | `showOnStart` | bool | Default `true`. Shows the window when a download starts. |
 | `showOnComplete` | bool | Default `true`. Shows the window when a download completes. |
 | `showOnError` | bool | Default `true`. Shows the window when a download fails. |
+| `autoCheckUpdates` | bool | Default `false`. Checks for a newer release about once a day and shows a notice when one is found. |
+| `autoInstallUpdates` | bool | Default `false`. Downloads and installs new releases without asking. Conduit restarts to finish. |
 | `enginePath` | string | Optional. Absolute path to `aria2c`. When empty, Conduit uses the search order in `docs/ARCHITECTURE.md`. |
 
 ## Build from source

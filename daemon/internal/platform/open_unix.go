@@ -8,6 +8,7 @@ func normalizeOpenPath(goos, targetPath string) string {
 	return targetPath
 }
 
-func startDetached(name string, args []string) error {
+// StartDetached starts name with args and does not wait for it to exit.
+func StartDetached(name string, args []string) error {
 	return startAndReap(exec.Command(name, args...))
 }

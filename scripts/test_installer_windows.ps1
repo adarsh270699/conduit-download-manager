@@ -18,7 +18,10 @@
          uninstall registry entry, and DisplayVersion equal to VERSION.
       3. Conduit.exe --version reports VERSION.
       4. Conduit starts in the tray and /api/health reports VERSION.
-      5. A second silent install updates in place and keeps config.json.
+      5. A second silent install updates in place and keeps config.json and
+         aria2.session. It keeps the aria2 engine when the pin is unchanged, does
+         not recreate a deleted desktop shortcut, and relaunches Conduit when run
+         with /LAUNCH=background.
       6. Silent uninstall removes the program and registry entry and keeps
          the settings (the silent default).
 
@@ -197,14 +200,41 @@ if (-not $SkipLaunch) {
     Start-AndCheck $dir $Expected
 }
 
-Step 'Update in place (second silent install)'
+Step 'Update in place through the pipeline arguments (/S /LAUNCH=background)'
+# The update pipeline runs the installer this way. It must not wait on any
+# question page, and it must start Conduit again when it finishes.
 $configBefore = if (Test-Path -LiteralPath $ConfigFile) { Get-Content -LiteralPath $ConfigFile -Raw } else { $null }
-$code = Invoke-Setup $Installer @('/S')
+$sessionFile = Join-Path $env:APPDATA 'conduit\aria2.session'
+$sessionBefore = if (Test-Path -LiteralPath $sessionFile) { Get-Content -LiteralPath $sessionFile -Raw } else { $null }
+$engineExe = Join-Path $dir 'engine\aria2c.exe'
+$engineStamp = if (Test-Path -LiteralPath $engineExe) { (Get-Item -LiteralPath $engineExe).LastWriteTimeUtc } else { $null }
+$desktopLnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Conduit.lnk'
+# A user who deleted the shortcut must not get it back from an update.
+Remove-Item -LiteralPath $desktopLnk -Force -ErrorAction SilentlyContinue
+
+$code = Invoke-Setup $Installer @('/S', '/LAUNCH=background')
 Check ($code -eq 0) "update-in-place exited 0 (got $code)"
 Check ((Get-InstallDir) -eq $dir) "install location unchanged"
 if ($null -ne $configBefore) {
     Check ((Test-Path -LiteralPath $ConfigFile) -and ((Get-Content -LiteralPath $ConfigFile -Raw) -eq $configBefore)) "config.json kept across the update"
 }
+if ($null -ne $sessionBefore) {
+    Check ((Test-Path -LiteralPath $sessionFile) -and ((Get-Content -LiteralPath $sessionFile -Raw) -eq $sessionBefore)) "aria2.session kept across the update"
+}
+Check (-not (Test-Path -LiteralPath $desktopLnk)) "update did not recreate a deleted desktop shortcut"
+if ($null -ne $engineStamp) {
+    Check ((Get-Item -LiteralPath $engineExe).LastWriteTimeUtc -eq $engineStamp) "update kept the aria2 engine (same pin, no download)"
+}
+if (Test-Path -LiteralPath $engineExe) {
+    Check (Test-Path -LiteralPath (Join-Path $dir 'engine\aria2.sha256')) "engine pin marker is present after the install"
+}
+$health = Wait-Health 60
+Check ($null -ne $health) "/LAUNCH=background started Conduit"
+if ($health) {
+    Check ($health.version -eq $Expected) "relaunched Conduit reports $Expected (got $($health.version))"
+}
+& (Join-Path $dir 'Conduit.exe') --shutdown | Out-Null
+Start-Sleep -Seconds 2
 
 Step 'Silent uninstall'
 # _?= runs the uninstaller in place so Start-Process can wait for it.

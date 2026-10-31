@@ -4,6 +4,11 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+### Added
+
+- The daemon can check GitHub for a newer stable release, download the installer for this OS, verify it against `SHA256SUMS.txt`, and install it with settings kept. Windows installs run silently and start Conduit again; Linux installs ask for a password once through `pkexec`. Driven by the `/api/update` routes.
+- The Settings drawer has an Updates section: a button that checks for an update and downloads it when one is found, then installs it on the next press; and two switches, to check for updates automatically and to install them automatically.
+
 ## [1.0.0] - 2026-10-31
 
 ### Added

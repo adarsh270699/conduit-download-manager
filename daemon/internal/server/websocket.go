@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"conduit/daemon/internal/config"
+	"conduit/daemon/internal/updater"
 	"github.com/gorilla/websocket"
 )
 
@@ -22,20 +24,23 @@ var upgrader = websocket.Upgrader{
 
 // WSMessage is one frame on /api/ws. Type says which field is set:
 // "downloads" carries the full list, "config" carries the current settings,
-// and "event" lists what just made the window pop up.
+// "event" lists what just made the window pop up, and "update" carries the
+// update status.
 type WSMessage struct {
 	Type      string          `json:"type"`
 	Downloads []DownloadItem  `json:"downloads,omitempty"`
 	Config    *config.Config  `json:"config,omitempty"`
 	Events    []DownloadEvent `json:"events,omitempty"`
+	Update    *updater.Status `json:"update,omitempty"`
 }
 
 // WSHub pushes the download list every tick and settings whenever they change,
 // so every open dashboard (desktop window and browser tabs) stays in step.
 type WSHub struct {
 	server       *Server
-	mu           sync.Mutex // guards clients and serialises writes
+	mu           sync.Mutex // guards clients, lastUpdate, and serialises writes
 	clients      map[*websocket.Conn]struct{}
+	lastUpdate   []byte // the last update status sent, so unchanged status is not resent
 	stopChan     chan struct{}
 	stopOnce     sync.Once
 	tickDuration time.Duration
@@ -85,6 +90,11 @@ func (h *WSHub) ClientCount() int {
 // the window pop-up watcher.
 func (h *WSHub) BroadcastAll(ctx context.Context) {
 	hasClients := h.ClientCount() > 0
+	// The update status does not need the engine, so it goes out even when the
+	// download list cannot be read.
+	if hasClients {
+		h.broadcastUpdate()
+	}
 	if !hasClients && !h.server.windowEventsWanted() {
 		h.server.forgetObserved()
 		return
@@ -101,6 +111,27 @@ func (h *WSHub) BroadcastAll(ctx context.Context) {
 	// After the list, so the row an event points at is already on screen.
 	if len(events) > 0 {
 		h.send(WSMessage{Type: "event", Events: events})
+	}
+}
+
+// broadcastUpdate sends the update status when it has changed since the last
+// send. A dashboard that connects later gets the status when it connects.
+func (h *WSHub) broadcastUpdate() {
+	u := h.server.updateSvc()
+	if u == nil {
+		return
+	}
+	st := u.Status()
+	data, err := json.Marshal(st)
+	if err != nil {
+		return
+	}
+	h.mu.Lock()
+	same := bytes.Equal(data, h.lastUpdate)
+	h.lastUpdate = data
+	h.mu.Unlock()
+	if !same {
+		h.send(WSMessage{Type: "update", Update: &st})
 	}
 }
 
@@ -184,6 +215,11 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	if items, err := s.getDownloadItems(r.Context()); err == nil {
 		s.wsHub.send(WSMessage{Type: "downloads", Downloads: items}, conn)
+	}
+
+	if u := s.updateSvc(); u != nil {
+		st := u.Status()
+		s.wsHub.send(WSMessage{Type: "update", Update: &st}, conn)
 	}
 
 	// The read loop only detects disconnects; clients never send data.

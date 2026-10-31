@@ -125,6 +125,18 @@ func Run(opts Options) error {
 			_ = os.Remove(opts.LocalDataDir)
 		}
 	}
+	// Downloaded installers and the update record are not settings. Keep mode
+	// removes them; purge removes them with the config directory. The names match
+	// the updater's updates/ folder and update.json.
+	if opts.Mode == Keep {
+		if err := removeAllWithRetry(filepath.Join(opts.ConfigDir, "updates"), 8); err != nil {
+			errs = append(errs, fmt.Errorf("remove downloaded updates: %w", err))
+		}
+		if err := os.Remove(filepath.Join(opts.ConfigDir, "update.json")); err != nil && !errors.Is(err, os.ErrNotExist) {
+			errs = append(errs, fmt.Errorf("remove update record: %w", err))
+		}
+	}
+
 	if opts.LegacyWebView != "" {
 		if err := removeAllWithRetry(opts.LegacyWebView, 8); err != nil {
 			errs = append(errs, fmt.Errorf("remove legacy WebView data: %w", err))

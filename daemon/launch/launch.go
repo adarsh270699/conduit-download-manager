@@ -94,6 +94,20 @@ func (a *App) Shutdown(ctx context.Context) error {
 	return a.inner.Shutdown(ctx)
 }
 
+// LaunchPendingInstall starts the installer that Install queued, if there is
+// one. Call it only after Shutdown has returned: the installer then never runs
+// while Conduit still holds Conduit.exe or the instance lock.
+func (a *App) LaunchPendingInstall() error {
+	if a == nil || a.inner == nil || a.inner.Updater == nil {
+		return nil
+	}
+	cmd := a.inner.Updater.TakePendingInstall()
+	if cmd == nil {
+		return nil
+	}
+	return platform.StartDetached(cmd.Name, cmd.Args)
+}
+
 // WaitForInstanceStop waits until the instance lock can be acquired, which
 // means the previous Conduit process has finished shutting down and released
 // the engine. It is used by the uninstaller before deleting files.

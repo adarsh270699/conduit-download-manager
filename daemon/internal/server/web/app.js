@@ -95,6 +95,11 @@
     cfgShowOnStart: document.getElementById('cfgShowOnStart'),
     cfgShowOnComplete: document.getElementById('cfgShowOnComplete'),
     cfgShowOnError: document.getElementById('cfgShowOnError'),
+    cfgAutoCheckUpdates: document.getElementById('cfgAutoCheckUpdates'),
+    cfgAutoInstallUpdates: document.getElementById('cfgAutoInstallUpdates'),
+    updateSummary: document.getElementById('updateSummary'),
+    updateActionBtn: document.getElementById('updateActionBtn'),
+    updateDetail: document.getElementById('updateDetail'),
     appVersion: document.getElementById('appVersion'),
     extensionGuideURL: document.getElementById('extensionGuideURL'),
     openExtensionGuideBtn: document.getElementById('openExtensionGuideBtn'),
@@ -284,6 +289,9 @@
       } else if (msg.type === 'event' && Array.isArray(msg.events)) {
         // The daemon just brought this window forward; say why.
         announceDownloadEvents(msg.events);
+      } else if (msg.type === 'update' && msg.update) {
+        // The daemon pushes the update status whenever it changes.
+        onUpdateStatus(msg.update);
       } else if (msg.type === 'config' && msg.config) {
         // Another window or tab changed settings (or this one did).
         applySettings(msg.config, { keepOpenForm: true });
@@ -1531,6 +1539,8 @@
       if (elements.cfgShowOnStart) elements.cfgShowOnStart.checked = !!cfg.showOnStart;
       if (elements.cfgShowOnComplete) elements.cfgShowOnComplete.checked = !!cfg.showOnComplete;
       if (elements.cfgShowOnError) elements.cfgShowOnError.checked = !!cfg.showOnError;
+      if (elements.cfgAutoCheckUpdates) elements.cfgAutoCheckUpdates.checked = !!cfg.autoCheckUpdates;
+      if (elements.cfgAutoInstallUpdates) elements.cfgAutoInstallUpdates.checked = !!cfg.autoInstallUpdates;
       if (elements.cfgSpeedLimit) elements.cfgSpeedLimit.value = limit;
     }
     updateAddDestination();
@@ -1549,6 +1559,7 @@
 
   async function fetchSettings() {
     showAppVersion();
+    refreshUpdate();
     try {
       const res = await fetch('/api/config');
       if (res.ok) {
@@ -1591,6 +1602,166 @@
     });
   }
 
+  // ---- Updates ----
+  // The daemon checks GitHub, downloads, and installs. This section shows where
+  // that stands and runs the next step. The daemon pushes the status over the
+  // WebSocket, so every open dashboard shows the same state.
+  let updateStatus = null;
+  let updateStepRunning = false;
+
+  function formatCheckedAt(iso) {
+    if (!iso) return '';
+    const when = new Date(iso);
+    if (Number.isNaN(when.getTime())) return '';
+    return when.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  }
+
+  // describeUpdate turns a status into the button and the line under it.
+  function describeUpdate(st) {
+    const checked = formatCheckedAt(st.lastCheckedAt);
+    const lastChecked = checked ? ` Last checked ${checked}.` : '';
+    switch (st.state) {
+      case 'checking':
+        return { label: 'Checking…', action: 'check', disabled: true, text: 'Checking GitHub for a newer version.' };
+      case 'available':
+        return { label: 'Download update', action: 'download', text: `Version ${st.latestVersion} is available.` };
+      case 'downloading': {
+        const pct = st.progress && st.progress.total > 0 ? Math.floor((100 * st.progress.done) / st.progress.total) : 0;
+        return { label: 'Downloading…', action: 'download', disabled: true, text: `Downloading version ${st.latestVersion}: ${pct}%.` };
+      }
+      case 'downloaded':
+        if (!st.installable) {
+          return { label: 'Install and restart', action: 'install', disabled: true, text: `Version ${st.latestVersion} is downloaded. Install it from the Windows setup or the Ubuntu package.` };
+        }
+        return { label: 'Install and restart', action: 'install', text: `Version ${st.latestVersion} is downloaded. Conduit restarts to install it.` };
+      case 'installing':
+        return { label: 'Installing…', action: 'install', disabled: true, text: 'Installing the update.' };
+      case 'upToDate':
+        return { label: 'Check for updates', action: 'check', text: `Conduit is up to date.${lastChecked}` };
+      case 'error': {
+        const reason = st.error ? ` ${st.error}` : '';
+        return { label: 'Check for updates', action: 'check', error: true, text: `Could not finish the update.${reason} Check for updates to try again.` };
+      }
+      default:
+        return { label: 'Check for updates', action: 'check', text: lastChecked.trim() || 'Not checked yet.' };
+    }
+  }
+
+  function renderUpdate(st) {
+    if (!elements.updateActionBtn) return;
+    updateStatus = st;
+    if (elements.updateSummary) {
+      elements.updateSummary.textContent = st.installable
+        ? `Version ${st.currentVersion}`
+        : `Version ${st.currentVersion}. Installing updates needs the Windows setup or the Ubuntu package.`;
+    }
+    if (elements.cfgAutoInstallUpdates) elements.cfgAutoInstallUpdates.disabled = !st.installable;
+
+    const view = describeUpdate(st);
+    elements.updateActionBtn.textContent = view.label;
+    elements.updateActionBtn.dataset.action = view.action;
+    elements.updateActionBtn.disabled = !!view.disabled || updateStepRunning;
+    // Download and install are the next step once a release is found, so they carry the primary style.
+    const primary = view.action !== 'check' && !view.disabled;
+    elements.updateActionBtn.classList.toggle('btn-primary', primary);
+    elements.updateActionBtn.classList.toggle('btn-secondary', !primary);
+    elements.updateDetail.textContent = view.text;
+    elements.updateDetail.classList.toggle('is-error', !!view.error);
+  }
+
+  function showUpdatePending(label, text) {
+    elements.updateActionBtn.textContent = label;
+    elements.updateActionBtn.disabled = true;
+    elements.updateDetail.textContent = text;
+    elements.updateDetail.classList.remove('is-error');
+  }
+
+  // postUpdateStep sends one update request. A refusal carries the daemon's reason.
+  async function postUpdateStep(path) {
+    const res = await fetch(path, { method: 'POST' });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(body.error || 'Conduit did not start that update step.');
+    }
+    return body;
+  }
+
+  async function refreshUpdate() {
+    if (!elements.updateActionBtn) return;
+    try {
+      const res = await fetch('/api/update');
+      if (res.ok) renderUpdate(await res.json());
+    } catch (e) {
+      // The connection status already reports an unreachable daemon.
+    }
+  }
+
+  // runUpdateStep runs the button's step. A check that finds a release goes on
+  // to download it, so one click takes the user from checking to a ready file.
+  async function runUpdateStep(action) {
+    updateStepRunning = true;
+    elements.updateActionBtn.disabled = true;
+    try {
+      if (action === 'install') {
+        // The daemon quits after it answers, so this page loses its connection.
+        await postUpdateStep('/api/update/install');
+        return;
+      }
+      if (action === 'download') {
+        renderUpdate(await postUpdateStep('/api/update/download'));
+        return;
+      }
+      showUpdatePending('Checking…', 'Checking GitHub for a newer version.');
+      let st = await postUpdateStep('/api/update/check');
+      if (st.state === 'available') {
+        st = await postUpdateStep('/api/update/download');
+      }
+      renderUpdate(st);
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      updateStepRunning = false;
+      await refreshUpdate();
+    }
+  }
+
+  // onUpdateStatus renders a pushed status. It also tells the user once when a
+  // version turns up, unless this page's own step just caused the change.
+  function onUpdateStatus(st) {
+    const before = updateStatus;
+    renderUpdate(st);
+    if (!before || updateStepRunning) return;
+    if (before.state === st.state && before.latestVersion === st.latestVersion) return;
+    if (st.state === 'available') {
+      showToast(`Conduit ${st.latestVersion} is available.`, 'success', {
+        persist: true,
+        actions: [{ label: 'Download', onClick: () => runUpdateStep('download') }],
+      });
+    } else if (st.state === 'downloaded' && st.installable) {
+      showToast(`Conduit ${st.latestVersion} is downloaded and ready to install.`, 'success', {
+        persist: true,
+        actions: [{ label: 'Install and restart', onClick: () => runUpdateStep('install') }],
+      });
+    }
+  }
+
+  if (elements.updateActionBtn) {
+    elements.updateActionBtn.addEventListener('click', () => {
+      runUpdateStep(elements.updateActionBtn.dataset.action || 'check');
+    });
+  }
+
+  // Automatic install needs automatic checks, so turning install on turns checks
+  // on, and turning checks off turns install off.
+  if (elements.cfgAutoCheckUpdates && elements.cfgAutoInstallUpdates) {
+    elements.cfgAutoInstallUpdates.addEventListener('change', () => {
+      if (elements.cfgAutoInstallUpdates.checked) elements.cfgAutoCheckUpdates.checked = true;
+    });
+    elements.cfgAutoCheckUpdates.addEventListener('change', () => {
+      if (!elements.cfgAutoCheckUpdates.checked) elements.cfgAutoInstallUpdates.checked = false;
+    });
+  }
+
   if (elements.openSettingsBtn) {
     elements.openSettingsBtn.addEventListener('click', openSettingsDrawer);
   }
@@ -1616,6 +1787,8 @@
         showOnStart: elements.cfgShowOnStart ? elements.cfgShowOnStart.checked : true,
         showOnComplete: elements.cfgShowOnComplete ? elements.cfgShowOnComplete.checked : true,
         showOnError: elements.cfgShowOnError ? elements.cfgShowOnError.checked : true,
+        autoCheckUpdates: elements.cfgAutoCheckUpdates ? elements.cfgAutoCheckUpdates.checked : false,
+        autoInstallUpdates: elements.cfgAutoInstallUpdates ? elements.cfgAutoInstallUpdates.checked : false,
         maxDownloadLimit: elements.cfgSpeedLimit ? elements.cfgSpeedLimit.value : (elements.speedLimiterSelect ? elements.speedLimiterSelect.value : '0'),
       };
 
