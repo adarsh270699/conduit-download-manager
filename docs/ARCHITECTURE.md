@@ -148,7 +148,7 @@ Unknown browser origins receive `403` before a handler runs. Requests without an
 | `GET` | `/api/ws` | WebSocket stream of `{type, …}` frames: `{"type":"config","config":{…}}` on connect and whenever settings change, and `{"type":"downloads","downloads":[…]}` on connect and every second, and `{"type":"update","update":{…}}` on connect and whenever the update status changes. |
 | `GET` | `/` | Embedded dashboard. `/setup` and `/extension` are the wizard and guide pages. |
 
-The update routes read GitHub's release feed. Two environment variables change where the feed is read, and both are for testing. `CONDUIT_UPDATE_API` replaces the API base. `CONDUIT_UPDATE_DOWNLOAD_HOSTS` adds comma-separated hosts that installers may be downloaded from; plain HTTP is allowed only for loopback hosts in that list. The daemon logs a warning when the second is set.
+The update routes read GitHub's release feed. Two environment variables change where the feed is read, and both are for testing. `CONDUIT_UPDATE_API` replaces the API base. `CONDUIT_UPDATE_DOWNLOAD_HOSTS` adds comma-separated hosts that installers may be downloaded from; plain HTTP is allowed only for loopback hosts in that list. Only the headless development daemon (`daemon/cmd`) reads them. The desktop app and the installers never do, so an installed Conduit cannot be pointed at another feed. The daemon logs a warning when the second is set.
 
 With `autoCheckUpdates` or `autoInstallUpdates` on, the daemon runs its own schedule, so the checks happen even with no dashboard open. The first check comes about a minute after start if one is due, then one check a day, or one an hour after a failed check. Every minute the schedule reads the two settings, so a change applies without a restart.
 
@@ -239,6 +239,6 @@ CI runs formatting, vet, race-enabled unit and integration tests, extension test
 - Updates on Linux need one password prompt from `pkexec`, so they are not silent. With `autoInstallUpdates` on, that prompt can appear without a click. Portable Windows copies and development builds can check and download, but install returns `409`.
 - Automatic install restarts Conduit as soon as a downloaded update is ready and no download is running. Automatic checks notify only through an open dashboard; there is no OS notification.
 - The Windows installer is unsigned, and `SHA256SUMS.txt` comes from the same release. The check catches corruption and tampering in transit, not a compromised release. `gh attestation verify` is the stronger check and is not run yet.
-- An interrupted update download starts over; it does not resume.
+- An interrupted update download starts over; it does not resume. A transfer that sends no data for 60 seconds, or runs longer than six hours, is ended and reported as an error.
 - Update checks use GitHub's unauthenticated API, which allows 60 requests an hour per IP address. Conditional requests keep repeat checks inside that limit.
 - `go test` targets Windows and Linux. Other operating systems are not supported.

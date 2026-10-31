@@ -1655,7 +1655,10 @@
         ? `Version ${st.currentVersion}`
         : `Version ${st.currentVersion}. Installing updates needs the Windows setup or the Ubuntu package.`;
     }
-    if (elements.cfgAutoInstallUpdates) elements.cfgAutoInstallUpdates.disabled = !st.installable;
+    // A switch that is on stays editable, so a copy that cannot install never traps the user with it on.
+    if (elements.cfgAutoInstallUpdates) {
+      elements.cfgAutoInstallUpdates.disabled = !st.installable && !elements.cfgAutoInstallUpdates.checked;
+    }
 
     const view = describeUpdate(st);
     elements.updateActionBtn.textContent = view.label;

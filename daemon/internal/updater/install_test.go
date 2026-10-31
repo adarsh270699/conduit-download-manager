@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"conduit/daemon/internal/aria"
+	"conduit/daemon/internal/release"
 )
 
 // fakeDownloads answers the engine queue from fixed lists and counts calls.
@@ -157,7 +158,11 @@ func installService(t *testing.T, ch Channel, f *fakeDownloads) *Service {
 // stageInstaller writes an installer and records it as downloaded.
 func stageInstaller(t *testing.T, svc *Service, body []byte) string {
 	t.Helper()
-	path := filepath.Join(svc.configDir, updatesDirName, "1.3.0", "Conduit-test-setup.bin")
+	v, _ := release.Parse("1.3.0")
+	path, err := svc.installerPath(v)
+	if err != nil {
+		t.Skipf("no installer on %s: %v", runtime.GOOS, err)
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -256,7 +261,7 @@ func TestInstallQueuesInstallerAndTakeReturnsItOnce(t *testing.T) {
 
 func TestInstallCommandPerChannel(t *testing.T) {
 	const installer = `C:\Users\u\AppData\Local\Temp\my setup\Conduit-windows-amd64-setup.exe`
-	cmd, err := installCommand("windows", ChannelWindowsInstaller, installer)
+	cmd, err := installCommand("windows", ChannelWindowsInstaller, installer, "")
 	if err != nil {
 		t.Fatalf("windows: %v", err)
 	}
@@ -268,16 +273,21 @@ func TestInstallCommandPerChannel(t *testing.T) {
 	}
 
 	deb := "/var/cache/conduit/updates/1.3.0/conduit_1.3.0_amd64.deb"
-	cmd, err = installCommand("linux", ChannelDeb, deb)
+	const sum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	cmd, err = installCommand("linux", ChannelDeb, deb, sum)
 	if err != nil {
 		t.Fatalf("linux: %v", err)
 	}
-	if cmd.Name != "/bin/sh" || len(cmd.Args) != 4 || cmd.Args[0] != "-c" || cmd.Args[2] != "sh" || cmd.Args[3] != deb {
+	if cmd.Name != "/bin/sh" || len(cmd.Args) != 5 || cmd.Args[0] != "-c" || cmd.Args[2] != "sh" ||
+		cmd.Args[3] != deb || cmd.Args[4] != sum {
 		t.Fatalf("linux command %+v", cmd)
 	}
 	script := cmd.Args[1]
-	if !strings.Contains(script, "pkexec apt-get install -y") || !strings.Contains(script, "exec /usr/bin/conduit --background") {
-		t.Fatalf("linux script must install and relaunch: %q", script)
+	if !strings.Contains(script, "pkexec /bin/sh -c") || !strings.Contains(script, "exec /usr/bin/conduit --background") {
+		t.Fatalf("linux script must verify, install, and relaunch: %q", script)
+	}
+	if !strings.Contains(script, "sha256sum -c") || !strings.Contains(script, "apt-get install -y") {
+		t.Fatalf("the root step must check the copy before installing it: %q", script)
 	}
 }
 
@@ -293,7 +303,7 @@ func TestInstallCommandRejectsMismatchedChannel(t *testing.T) {
 		{"darwin", ChannelDeb},
 	}
 	for _, c := range cases {
-		if _, err := installCommand(c.goos, c.ch, "/tmp/x"); !errors.Is(err, ErrUnsupportedChannel) {
+		if _, err := installCommand(c.goos, c.ch, "/tmp/x", ""); !errors.Is(err, ErrUnsupportedChannel) {
 			t.Errorf("%s/%q: err %v, want ErrUnsupportedChannel", c.goos, c.ch, err)
 		}
 	}

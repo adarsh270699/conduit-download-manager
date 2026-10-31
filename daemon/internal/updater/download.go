@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"conduit/daemon/internal/release"
 )
@@ -35,6 +36,17 @@ var (
 	// ErrBusy means another update step is already running.
 	ErrBusy = errors.New("another update step is running")
 )
+
+// stallTimeout ends a transfer that has sent no bytes for this long, so a stalled
+// connection cannot hold the state at downloading. Tests shorten it.
+var stallTimeout = 60 * time.Second
+
+// checksumTimeout bounds the request for SHA256SUMS.txt.
+const checksumTimeout = 30 * time.Second
+
+// downloadTimeout bounds one whole installer transfer, so a slow trickle of bytes
+// cannot hold the state at downloading indefinitely.
+const downloadTimeout = 6 * time.Hour
 
 // installerName returns the release asset this OS installs.
 func installerName(goos string, v release.Version) (string, error) {
@@ -74,11 +86,6 @@ func checksumFor(listing, name string) (string, bool) {
 func githubHostAllowed(host string) bool {
 	return host == "github.com" || strings.HasSuffix(host, ".githubusercontent.com")
 }
-
-// downloadHostsEnv names extra hosts that downloads may use, as a comma-separated
-// list. It lets a development build be tested against a feed on loopback. It is
-// not a production setting.
-const downloadHostsEnv = "CONDUIT_UPDATE_DOWNLOAD_HOSTS"
 
 // parseDownloadHosts reads the override list. Names are lower-cased and empty
 // entries are dropped.
@@ -175,6 +182,8 @@ func (s *Service) BeginDownload() error {
 // download fetches, verifies, and records the installer for ver. On failure it
 // removes what it wrote and sets error. The last good version stays in place.
 func (s *Service) download(ctx context.Context, rel *githubRelease, ver release.Version) error {
+	ctx, cancel := context.WithTimeout(ctx, downloadTimeout)
+	defer cancel()
 	final, sum, err := s.fetchInstaller(ctx, rel, ver)
 
 	s.mu.Lock()
@@ -252,6 +261,8 @@ func (s *Service) fetchInstaller(ctx context.Context, rel *githubRelease, ver re
 
 // fetchChecksum reads SHA256SUMS.txt and returns the hash listed for name.
 func (s *Service) fetchChecksum(ctx context.Context, asset githubAsset, name string) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, checksumTimeout)
+	defer cancel()
 	resp, err := s.get(ctx, asset.BrowserDownloadURL)
 	if err != nil {
 		return "", fmt.Errorf("read %s: %w", sumsName, err)
@@ -271,10 +282,12 @@ func (s *Service) fetchChecksum(ctx context.Context, asset githubAsset, name str
 // streamAsset writes the asset to dest, hashing as it goes. The body must match
 // the size the release reports. The returned hash is the SHA-256 of what was
 // written.
-func (s *Service) streamAsset(ctx context.Context, asset githubAsset, dest string, report func(done, total int64)) (string, error) {
+func (s *Service) streamAsset(parent context.Context, asset githubAsset, dest string, report func(done, total int64)) (string, error) {
+	ctx, kick, stop := withStallTimeout(parent, stallTimeout)
+	defer stop()
 	resp, err := s.get(ctx, asset.BrowserDownloadURL)
 	if err != nil {
-		return "", err
+		return "", stalledError(parent, ctx, asset.Name, err)
 	}
 	defer resp.Body.Close()
 	if resp.ContentLength >= 0 && resp.ContentLength != asset.Size {
@@ -286,12 +299,17 @@ func (s *Service) streamAsset(ctx context.Context, asset githubAsset, dest strin
 		return "", err
 	}
 	hash := sha256.New()
-	pw := &progressWriter{w: io.MultiWriter(f, hash), total: asset.Size, report: report}
+	// Every write counts as progress, so it restarts the stall timer.
+	onWrite := func(done, total int64) {
+		kick()
+		report(done, total)
+	}
+	pw := &progressWriter{w: io.MultiWriter(f, hash), total: asset.Size, report: onWrite}
 	// Read one byte past the declared size, so a longer body is caught.
 	n, copyErr := io.Copy(pw, io.LimitReader(resp.Body, asset.Size+1))
 	closeErr := f.Close()
 	if copyErr != nil {
-		return "", fmt.Errorf("download %s: %w", asset.Name, copyErr)
+		return "", stalledError(parent, ctx, asset.Name, fmt.Errorf("download %s: %w", asset.Name, copyErr))
 	}
 	if closeErr != nil {
 		return "", closeErr
@@ -300,6 +318,61 @@ func (s *Service) streamAsset(ctx context.Context, asset githubAsset, dest strin
 		return "", fmt.Errorf("%s is %d bytes; the release says %d", asset.Name, n, asset.Size)
 	}
 	return hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+// installerPath is where download writes the installer for v.
+func (s *Service) installerPath(v release.Version) (string, error) {
+	name, err := installerName(runtime.GOOS, v)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(s.configDir, updatesDirName, v.String(), name), nil
+}
+
+// recordedInstaller returns the installer path when update.json names the file
+// download writes for the recorded version. A record edited by hand, or copied
+// from somewhere else, fails this check. Caller holds mu, or owns s (in New).
+func (s *Service) recordedInstaller() (string, bool) {
+	v, err := release.Parse(s.rec.DownloadedVersion)
+	if err != nil {
+		return "", false
+	}
+	want, err := s.installerPath(v)
+	if err != nil || !samePath(s.rec.DownloadedPath, want) {
+		return "", false
+	}
+	return want, true
+}
+
+// samePath reports whether two paths name the same location on this OS.
+func samePath(a, b string) bool {
+	a, b = filepath.Clean(a), filepath.Clean(b)
+	if runtime.GOOS == "windows" {
+		return strings.EqualFold(a, b)
+	}
+	return a == b
+}
+
+// withStallTimeout returns a context that is cancelled when kick has not been
+// called for d. stop ends the timer and cancels the context.
+func withStallTimeout(parent context.Context, d time.Duration) (context.Context, func(), func()) {
+	ctx, cancel := context.WithCancel(parent)
+	timer := time.AfterFunc(d, cancel)
+	kick := func() { timer.Reset(d) }
+	stop := func() {
+		timer.Stop()
+		cancel()
+	}
+	return ctx, kick, stop
+}
+
+// stalledError reports a transfer that was ended for going quiet, rather than
+// for a failure of its own. It must run before stop, while ctx still shows why.
+func stalledError(parent, ctx context.Context, name string, err error) error {
+	if parent.Err() == nil && ctx.Err() != nil {
+		return fmt.Errorf("download of %s stalled: no data for %s", name, stallTimeout)
+	}
+	return err
 }
 
 // progressWriter counts bytes as they are written and reports them.

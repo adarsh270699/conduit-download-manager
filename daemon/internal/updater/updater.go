@@ -30,9 +30,13 @@ type Downloads interface {
 type Options struct {
 	// ConfigDir holds update.json and the updates/ folder.
 	ConfigDir string
-	// APIBase overrides the GitHub API base. Empty uses CONDUIT_UPDATE_API,
-	// then api.github.com.
+	// APIBase overrides the GitHub API base. Empty uses api.github.com. Only the
+	// development daemon sets it, from CONDUIT_UPDATE_API.
 	APIBase string
+	// DownloadHosts adds comma-separated hosts that installers may come from,
+	// beyond GitHub. Plain HTTP is allowed only to loopback names in the list.
+	// Only the development daemon sets it, from CONDUIT_UPDATE_DOWNLOAD_HOSTS.
+	DownloadHosts string
 	// Client sends the GitHub and download requests. Nil uses a plain client with
 	// no timeout; each step is bounded by a context instead.
 	Client *http.Client
@@ -67,7 +71,7 @@ type Service struct {
 	// hostAllowed decides which hosts downloads may use over HTTPS. Tests replace
 	// it so they can serve from a local TLS server.
 	hostAllowed func(host string) bool
-	// extraHosts are the test-only hosts from CONDUIT_UPDATE_DOWNLOAD_HOSTS.
+	// extraHosts are the development-only hosts from Options.DownloadHosts.
 	extraHosts map[string]bool
 	// pending is the installer command Install queued for launch after quit.
 	pending *Command
@@ -100,10 +104,10 @@ func New(opts Options) (*Service, error) {
 		channel = detectChannel(runtime.GOOS, exe, osLookups())
 	}
 
-	extra := parseDownloadHosts(os.Getenv(downloadHostsEnv))
+	extra := parseDownloadHosts(opts.DownloadHosts)
 	if len(extra) > 0 {
-		log.Printf("Warning: %s=%q lets update downloads come from more hosts. This is for testing only.",
-			downloadHostsEnv, os.Getenv(downloadHostsEnv))
+		log.Printf("Warning: update downloads may come from more hosts (%q). This is for testing only.",
+			opts.DownloadHosts)
 	}
 
 	s := &Service{
@@ -126,6 +130,12 @@ func New(opts Options) (*Service, error) {
 			LatestVersion:  rec.LatestVersion,
 			LastCheckedAt:  rec.LastCheckedAt,
 		},
+	}
+	// A download saved by an earlier run is still ready to install. Restoring it
+	// here means "Install and restart" and automatic install do not wait for the
+	// next check.
+	if dv, err := release.Parse(rec.DownloadedVersion); err == nil && dv.Compare(currentV) > 0 && s.holdsDownloadLocked(dv) {
+		s.status.State = StateDownloaded
 	}
 	return s, nil
 }
@@ -220,10 +230,14 @@ func (s *Service) busyLocked() bool {
 // holdsDownloadLocked reports whether the installer for v is already on disk.
 // Caller holds mu.
 func (s *Service) holdsDownloadLocked(v release.Version) bool {
-	if s.rec.DownloadedPath == "" || s.rec.DownloadedVersion != v.String() {
+	if s.rec.DownloadedVersion != v.String() {
 		return false
 	}
-	_, err := os.Stat(s.rec.DownloadedPath)
+	path, ok := s.recordedInstaller()
+	if !ok {
+		return false
+	}
+	_, err := os.Stat(path)
 	return err == nil
 }
 

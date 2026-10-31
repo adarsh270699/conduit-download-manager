@@ -28,6 +28,10 @@ type Options struct {
 	RPCPort     int
 	DownloadDir string
 	ConfigDir   string
+	// UpdateAPI and UpdateDownloadHosts point the update service at a test feed.
+	// Only the development daemon sets them; the desktop app leaves them empty.
+	UpdateAPI           string
+	UpdateDownloadHosts string
 }
 
 // How often the engine watcher checks aria2, and the longest it waits between
@@ -133,6 +137,8 @@ func Start(ctx context.Context, opts Options) (*Running, error) {
 
 	updates, err := updater.New(updater.Options{
 		ConfigDir:     configDir,
+		APIBase:       opts.UpdateAPI,
+		DownloadHosts: opts.UpdateDownloadHosts,
 		Downloads:     running.RPC,
 		EngineRunning: sup.IsRunning,
 	})
