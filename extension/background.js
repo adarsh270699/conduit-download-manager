@@ -932,18 +932,13 @@ if (typeof chrome !== 'undefined') {
           title: 'Download with Conduit',
           contexts: ['link']
         });
-        chrome.contextMenus.create({
-          id: 'conduit-download-media',
-          title: 'Download Media with Conduit',
-          contexts: ['image', 'video', 'audio']
-        });
       });
     } catch (_) {}
   }
 
   if (chrome.contextMenus && chrome.contextMenus.onClicked) {
     chrome.contextMenus.onClicked.addListener((info, tab) => {
-      const targetUrl = info.linkUrl || info.srcUrl;
+      const targetUrl = info.linkUrl;
       if (targetUrl) {
         handleManualDownload(targetUrl, tab ? tab.url : '').catch(() => {});
       }

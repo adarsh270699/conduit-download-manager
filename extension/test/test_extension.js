@@ -613,8 +613,8 @@ async function runTests() {
   };
   await bg.handleDeterminingFilename({
     id: 903,
-    url: 'https://s4.snapyyt.app/video.mp4',
-    filename: 'Leciercene-SnapYT-App.mp4',
+    url: 'https://example.com/sample-video.mp4',
+    filename: 'sample-video.mp4',
     totalBytes: 284 * 1024 * 1024
   }, mockSuggest);
   assert.strictEqual(suggestCalled, true, 'Save dialog must be allowed to finish');
