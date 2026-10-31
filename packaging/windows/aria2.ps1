@@ -38,11 +38,22 @@ function Write-Log([string]$Message) {
 }
 
 function Get-FileSha256([string]$Path) {
-    return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+    return ([BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.IO.File]::ReadAllBytes($Path))) -replace '-', '').ToLowerInvariant()
 }
 
 Set-Content -LiteralPath $LogPath -Value '' -Encoding utf8 -ErrorAction SilentlyContinue
 Write-Log "aria2 install to $Destination from $Url"
+Write-Log "PowerShell $($PSVersionTable.PSVersion) $($PSVersionTable.PSEdition), PSModulePath=$env:PSModulePath"
+
+# A setup started from PowerShell 7 inherits its PSModulePath, which lists
+# PowerShell 7's own modules first. Windows PowerShell then autoloads the
+# PowerShell 7 Microsoft.PowerShell.Utility, which it cannot use, and loses the
+# script functions (Get-FileHash, New-Guid, ...) of its own copy. Drop the
+# PowerShell 7 folders and put this PowerShell's modules first.
+if ($PSVersionTable.PSEdition -ne 'Core') {
+    $kept = @($env:PSModulePath -split ';' | Where-Object { $_ -and $_ -notmatch '\\PowerShell\\' })
+    $env:PSModulePath = ((@(Join-Path $PSHOME 'Modules') + $kept) | Select-Object -Unique) -join ';'
+}
 
 $status = 1
 $work = $null
