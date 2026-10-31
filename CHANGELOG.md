@@ -4,6 +4,19 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-01
+
+### Security
+
+- Only the headless development daemon reads `CONDUIT_UPDATE_API` and `CONDUIT_UPDATE_DOWNLOAD_HOSTS`. In 1.1.0 the desktop app read them too, so an environment variable could point an installed copy at another release feed.
+- An install runs only the installer file that the download wrote. On Linux, the install checks a root-owned copy of the package against its SHA-256 before installing it, so the file cannot be swapped after the check.
+
+### Fixed
+
+- A download that sends no data for 60 seconds is ended, and a download is capped at six hours. A stalled download no longer blocks checks and installs until Conduit restarts.
+- A download saved before a restart is ready to install after the restart, so "Install and restart" appears without a new check.
+- The "Install updates automatically" switch can be turned off on a copy that cannot install.
+
 ## [1.1.0] - 2026-10-31
 
 ### Added
@@ -30,6 +43,7 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 - Download URLs are limited to HTTP, HTTPS, and FTP.
 - The internal aria2 RPC port uses a per-launch random secret and checks engine ownership before use.
 
-[Unreleased]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/adarsh270699/conduit-download-manager/releases/tag/v1.0.0
