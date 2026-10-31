@@ -29,6 +29,25 @@ func getFreePort(t *testing.T) int {
 	return l.Addr().(*net.TCPAddr).Port
 }
 
+// startLiveREST starts the REST server on a free port and returns it with that
+// port. getFreePort only shows the port was free a moment ago, and aria2 or a
+// parallel test package can take it before Start binds, so retry on a new port.
+func startLiveREST(t *testing.T, rpcClient AriaClient, cfgMgr *config.Manager) (*Server, int) {
+	t.Helper()
+	var lastErr error
+	for attempt := 0; attempt < 5; attempt++ {
+		port := getFreePort(t)
+		srv := NewServer(port, rpcClient, cfgMgr)
+		if err := srv.Start(); err != nil {
+			lastErr = err
+			continue
+		}
+		return srv, port
+	}
+	t.Fatalf("failed to start REST server: %v", lastErr)
+	return nil, 0
+}
+
 func TestLiveServerRESTIntegration(t *testing.T) {
 	needsEngine(t)
 	tmpDir, err := os.MkdirTemp("", "conduit-int-srv-*")
@@ -42,7 +61,6 @@ func TestLiveServerRESTIntegration(t *testing.T) {
 	_ = os.MkdirAll(downloadDir, 0755)
 
 	rpcPort := getFreePort(t)
-	httpPort := getFreePort(t)
 
 	// 1. Initialize Config Manager
 	configPath := filepath.Join(configDir, "config.json")
@@ -78,10 +96,7 @@ func TestLiveServerRESTIntegration(t *testing.T) {
 
 	// 3. Start Live REST Server
 	rpcClient := aria.NewClient(fmt.Sprintf("http://127.0.0.1:%d/jsonrpc", rpcPort), sup.RPCSecret())
-	srv := NewServer(httpPort, rpcClient, cfgMgr)
-	if err := srv.Start(); err != nil {
-		t.Fatalf("failed to start REST server: %v", err)
-	}
+	srv, httpPort := startLiveREST(t, rpcClient, cfgMgr)
 	defer func() {
 		_ = srv.Shutdown(context.Background())
 	}()
@@ -254,13 +269,16 @@ func TestLiveServerActiveDownloadRemoveWithFiles(t *testing.T) {
 	_ = os.MkdirAll(downloadDir, 0755)
 
 	rpcPort := getFreePort(t)
-	httpPort := getFreePort(t)
 
-	// Slow chunk server (50MB)
-	slowPort := getFreePort(t)
+	// Slow chunk server (50MB). It serves on a listener bound here, so its port
+	// cannot be taken between choosing it and serving.
+	slowLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen for slow chunk server: %v", err)
+	}
+	slowPort := slowLn.Addr().(*net.TCPAddr).Port
 	chunkData := make([]byte, 1024*1024)
 	slowSrv := &http.Server{
-		Addr: fmt.Sprintf("127.0.0.1:%d", slowPort),
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Length", fmt.Sprintf("%d", 50*1024*1024))
 			for i := 0; i < 50; i++ {
@@ -273,7 +291,7 @@ func TestLiveServerActiveDownloadRemoveWithFiles(t *testing.T) {
 		}),
 	}
 	go func() {
-		_ = slowSrv.ListenAndServe()
+		_ = slowSrv.Serve(slowLn)
 	}()
 	defer slowSrv.Close()
 
@@ -307,10 +325,7 @@ func TestLiveServerActiveDownloadRemoveWithFiles(t *testing.T) {
 	}()
 
 	rpcClient := aria.NewClient(fmt.Sprintf("http://127.0.0.1:%d/jsonrpc", rpcPort), sup.RPCSecret())
-	srv := NewServer(httpPort, rpcClient, cfgMgr)
-	if err := srv.Start(); err != nil {
-		t.Fatalf("failed to start REST server: %v", err)
-	}
+	srv, httpPort := startLiveREST(t, rpcClient, cfgMgr)
 	defer func() {
 		_ = srv.Shutdown(context.Background())
 	}()
@@ -423,7 +438,6 @@ func TestLiveServerQoLFeatures(t *testing.T) {
 	_ = os.MkdirAll(downloadDir2, 0755)
 
 	rpcPort := getFreePort(t)
-	httpPort := getFreePort(t)
 
 	cfgMgr, err := config.NewManager(filepath.Join(configDir, "config.json"), nil)
 	if err != nil {
@@ -456,10 +470,7 @@ func TestLiveServerQoLFeatures(t *testing.T) {
 	}()
 
 	rpcClient := aria.NewClient(fmt.Sprintf("http://127.0.0.1:%d/jsonrpc", rpcPort), sup.RPCSecret())
-	srv := NewServer(httpPort, rpcClient, cfgMgr)
-	if err := srv.Start(); err != nil {
-		t.Fatalf("failed to start REST server: %v", err)
-	}
+	srv, httpPort := startLiveREST(t, rpcClient, cfgMgr)
 	defer func() {
 		_ = srv.Shutdown(context.Background())
 	}()
@@ -506,9 +517,12 @@ func TestLiveServerQoLFeatures(t *testing.T) {
 		chunkPayload[i] = byte(i % 251)
 	}
 
-	slowPort := getFreePort(t)
+	slowLn, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen for slow chunk server: %v", err)
+	}
+	slowPort := slowLn.Addr().(*net.TCPAddr).Port
 	slowSrv := &http.Server{
-		Addr: fmt.Sprintf("127.0.0.1:%d", slowPort),
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Length", fmt.Sprintf("%d", len(chunkPayload)))
 			w.Header().Set("Content-Type", "application/octet-stream")
@@ -528,7 +542,7 @@ func TestLiveServerQoLFeatures(t *testing.T) {
 		}),
 	}
 	go func() {
-		_ = slowSrv.ListenAndServe()
+		_ = slowSrv.Serve(slowLn)
 	}()
 	defer slowSrv.Close()
 
