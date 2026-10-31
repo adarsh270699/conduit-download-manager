@@ -75,7 +75,14 @@ function Check([bool]$Condition, [string]$Message) { if ($Condition) { Pass $Mes
 function Step([string]$Message) { Write-Host ''; Write-Host "==> $Message" -ForegroundColor Cyan }
 
 function Invoke-Setup([string]$Path, [string[]]$Arguments) {
-    $p = Start-Process -FilePath $Path -ArgumentList $Arguments -Wait -PassThru
+    # Start-Process -Wait also waits for processes the installer started. The
+    # /LAUNCH=background run starts Conduit, which stays running, so wait on the
+    # installer process alone and give up after 10 minutes instead of hanging.
+    $p = Start-Process -FilePath $Path -ArgumentList $Arguments -PassThru
+    if (-not $p.WaitForExit(600000)) {
+        Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+        return -1
+    }
     return $p.ExitCode
 }
 
