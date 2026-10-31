@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2048 2048" width="2048" height="2048">
+  <defs>
+    <!-- Conduit Enterprise Warm Design System Tokens -->
+    <!-- Canvas: #F5EBDD | Primary Accent (Steel Blue): #315B8C | Secondary Accent (Terracotta Coral): #F2765E | Hairline: #DFD0BD -->
+  </defs>
+
+  <!-- Foundational Canvas Ground with Subtle Hairline Boundary -->
+  <rect id="canvas" width="2048" height="2048" fill="#F5EBDD" stroke="#DFD0BD" stroke-width="2" />
+
+  <!-- Conduit Accelerated Convergence Symbol -->
+  <g id="conduit-symbol">
+    <!-- Multi-Connection Input Channels & Left Accelerator Half (#315B8C Deep Ocean Steel Blue) -->
+    <path fill="#315B8C" d="
+      M 654 408
+      V 840
+      C 654 986, 894 1134, 894 1280
+      V 1408
+      H 764
+      L 1024 1668
+      V 1280
+      C 1024 1160, 1175 1060, 1180 980
+      C 1185 930, 1190 890, 1190 840
+      V 408
+      H 1060
+      V 840
+      C 1060 920, 1024 970, 1024 1020
+      C 1024 970, 988 920, 988 840
+      V 408
+      H 858
+      V 840
+      C 858 890, 863 930, 868 1000
+      C 868 930, 784 890, 784 840
+      V 408
+      H 654
+      Z
+    " />
+
+    <!-- High-Velocity Output Stream & Right Accelerator Half (#F2765E Warm Terracotta Coral) -->
+    <path fill="#F2765E" d="
+      M 1264 408
+      H 1394
+      V 840
+      C 1394 986, 1154 1134, 1154 1280
+      V 1408
+      H 1284
+      L 1024 1668
+      V 1280
+      C 1024 1160, 1175 1060, 1180 980
+      C 1185 930, 1264 890, 1264 840
+      V 408
+      H 1264
+      Z
+    " />
+  </g>
+</svg>

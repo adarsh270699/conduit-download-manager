@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Conduit</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #F5EBDD;
+      color: #413333;
+      font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    p {
+      font-size: 16px;
+      letter-spacing: 0.16px;
+      font-weight: 400;
+    }
+    iframe {
+      position: fixed;
+      inset: 0;
+      border: 0;
+      width: 100%;
+      height: 100%;
+      background: #F5EBDD;
+    }
+  </style>
+</head>
+<body>
+  <p>Starting Conduit</p>
+  <script>
+    function armFrame(target) {
+      window.setTimeout(function () {
+        if (window.location.hostname === "127.0.0.1") return;
+        document.body.innerHTML = "";
+        var frame = document.createElement("iframe");
+        frame.src = target;
+        frame.title = "Conduit";
+        document.body.appendChild(frame);
+      }, 1500);
+    }
+
+    function go(target) {
+      window.location.replace(target);
+      armFrame(target);
+    }
+
+    window.conduitGo = function () {
+      if (window.__conduitTarget) go(window.__conduitTarget);
+    };
+
+    function poll() {
+      if (window.__conduitTarget) {
+        go(window.__conduitTarget);
+        return;
+      }
+      fetch("http://127.0.0.1:18800/api/health").then(function (res) {
+        if (!res.ok) {
+          window.setTimeout(poll, 300);
+          return;
+        }
+        go("http://127.0.0.1:18800/?shell=app");
+      }).catch(function () {
+        window.setTimeout(poll, 300);
+      });
+    }
+
+    poll();
+  </script>
+</body>
+</html>

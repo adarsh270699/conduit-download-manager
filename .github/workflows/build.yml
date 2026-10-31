@@ -1,0 +1,298 @@
+# Reusable build and test pipeline. CI calls it on every push and pull
+# request; the release workflow calls it with release: true, so a release
+# publishes exactly the binaries these tests ran against.
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      release:
+        description: Stage the full release set and keep artifacts longer.
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  WAILS_VERSION: v2.11.0
+  NFPM_VERSION: v2.41.3
+  ACTIONLINT_VERSION: v1.7.7
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: daemon/go.mod
+          cache-dependency-path: |
+            daemon/go.sum
+            desktop/go.sum
+
+      - name: Version fields agree with daemon/version/VERSION
+        working-directory: daemon
+        run: go run ./tools/release check
+
+      - name: Lint workflows
+        run: go run "github.com/rhysd/actionlint/cmd/actionlint@${ACTIONLINT_VERSION}"
+
+      - name: Lint shell scripts
+        # Each finding also becomes a PR annotation on the offending line.
+        run: |
+          shellcheck --external-sources --source-path=SCRIPTDIR --severity=warning --format=gcc scripts/*.sh \
+            | awk -F: '{ msg = $0; sub(/^[^:]*:[^:]*:[^:]*: /, "", msg); printf "::error file=%s,line=%s,col=%s::%s\n", $1, $2, $3, msg }'
+
+      - name: Check Go formatting
+        run: |
+          unformatted="$(gofmt -l daemon desktop)"
+          if [ -n "$unformatted" ]; then
+            echo "These files need gofmt (run 'make fmt'):"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Verify license bundle
+        run: |
+          for file in \
+            LICENSE \
+            NOTICE \
+            THIRD_PARTY_NOTICES.md \
+            SOURCE_OFFER.md \
+            extension/LICENSE \
+            licenses/Apache-2.0.txt \
+            licenses/OFL-1.1.txt \
+            licenses/go/Go-LICENSE; do
+            if [ ! -f "$file" ]; then
+              echo "Missing license file: $file"
+              exit 1
+            fi
+          done
+          grep -q "GNU GENERAL PUBLIC LICENSE" LICENSE
+          grep -q "Version 3" LICENSE
+
+      - name: Verify no aria2c binary is tracked
+        run: |
+          if git ls-files | grep -E '(^|/)aria2c(\.exe)?$'; then
+            echo "aria2c must not be committed. Conduit gets it at install time; scripts/download_aria2_binaries.sh fills .cache/ for tests."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check JavaScript syntax
+        run: |
+          for file in \
+            extension/background.js \
+            extension/content.js \
+            extension/popup/popup.js \
+            extension/offline/offline.js \
+            daemon/internal/server/web/app.js \
+            daemon/internal/server/web/setup.js \
+            daemon/internal/server/web/extension.js; do
+            node --check "$file"
+          done
+
+      - name: Extension tests
+        run: node extension/test/test_extension.js
+
+  linux:
+    name: Linux (Ubuntu 24.04)
+    needs: checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential pkg-config \
+            libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev \
+            curl zip unzip
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: daemon/go.mod
+          cache-dependency-path: |
+            daemon/go.sum
+            desktop/go.sum
+
+      - name: Install Wails and nfpm
+        run: |
+          go install "github.com/wailsapp/wails/v2/cmd/wails@${WAILS_VERSION}"
+          go install "github.com/goreleaser/nfpm/v2/cmd/nfpm@${NFPM_VERSION}"
+
+      - name: Vet
+        run: |
+          (cd daemon && go vet ./...)
+          (cd desktop && go vet -tags webkit2_41 ./...)
+
+      - name: Daemon unit tests
+        working-directory: daemon
+        run: go test -race ./...
+
+      - name: Fetch pinned aria2 test engine
+        # Capture the path first. Inside echo, a failed download would leave
+        # CONDUIT_ARIA2C empty, and the engine tests would skip silently.
+        run: |
+          engine="$(bash scripts/download_aria2_binaries.sh linux)"
+          echo "CONDUIT_ARIA2C=$engine" >> "$GITHUB_ENV"
+
+      - name: Daemon integration tests
+        working-directory: daemon
+        run: go test -race -tags=integration ./...
+
+      - name: Desktop tests
+        working-directory: desktop
+        run: go test -tags webkit2_41 ./...
+
+      - name: Cross-compile headless daemons
+        run: |
+          cd daemon
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o /dev/null ./cmd
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags=-H=windowsgui -o /dev/null ./cmd
+
+      - name: Build app, extension zip, and .deb
+        if: ${{ !inputs.release }}
+        env:
+          CONDUIT_REQUIRE_DEB: "1"
+        run: bash scripts/build_linux.sh
+
+      - name: Stage release files
+        if: ${{ inputs.release }}
+        run: bash scripts/prepare_release_linux.sh
+
+      - name: Check the build ships no aria2 engine
+        run: bash scripts/check_no_engine.sh dist desktop/build/bin
+
+      - name: Package smoke test
+        run: bash scripts/test_deb.sh
+
+      - name: Upload build
+        if: ${{ !inputs.release }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-linux
+          path: |
+            dist/*.zip
+            dist/*.deb
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload release files
+        if: ${{ inputs.release }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 30
+
+  windows:
+    name: Windows
+    needs: checks
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: daemon/go.mod
+          cache-dependency-path: |
+            daemon/go.sum
+            desktop/go.sum
+
+      - name: Install Wails and NSIS
+        shell: pwsh
+        run: |
+          go install "github.com/wailsapp/wails/v2/cmd/wails@$env:WAILS_VERSION"
+          if (-not (Test-Path 'C:\Program Files (x86)\NSIS\makensis.exe')) {
+            choco install nsis -y --no-progress
+          }
+
+      - name: Vet
+        shell: pwsh
+        run: |
+          Push-Location daemon; go vet ./...; if ($LASTEXITCODE) { exit 1 }; Pop-Location
+          Push-Location desktop; go vet ./...; if ($LASTEXITCODE) { exit 1 }; Pop-Location
+
+      - name: Daemon tests
+        working-directory: daemon
+        run: go test ./...
+
+      - name: Desktop tests
+        working-directory: desktop
+        run: go test ./...
+
+      - name: Build app, extension zip, and installer
+        if: ${{ !inputs.release }}
+        shell: pwsh
+        run: ./scripts/build_windows.ps1
+
+      - name: Stage release files
+        if: ${{ inputs.release }}
+        shell: pwsh
+        run: ./scripts/prepare_release_windows.ps1
+
+      # The upgrade test starts from the most recent published release other than
+      # this build. It is skipped when there is none yet.
+      - name: Download the previous release installer
+        id: previous
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $current = (Get-Content daemon/version/VERSION -Raw).Trim()
+          $tags = gh release list --repo "$env:GITHUB_REPOSITORY" --exclude-drafts --limit 30 --json tagName --jq '.[].tagName'
+          $previous = $tags | Where-Object { $_ -ne "v$current" } | Select-Object -First 1
+          if (-not $previous) { Write-Host 'No earlier release; skipping the upgrade test.'; exit 0 }
+          New-Item -ItemType Directory -Force previous | Out-Null
+          gh release download $previous --repo "$env:GITHUB_REPOSITORY" --pattern 'Conduit-windows-amd64-setup.exe' --dir previous
+          if ($LASTEXITCODE -eq 0 -and (Test-Path previous/Conduit-windows-amd64-setup.exe)) {
+            "installer=$((Resolve-Path previous/Conduit-windows-amd64-setup.exe).Path)" >> $env:GITHUB_OUTPUT
+            Write-Host "Upgrade test starts from $previous"
+          } else {
+            Write-Host "$previous has no Windows installer; skipping the upgrade test."
+          }
+
+      - name: Check the build ships no aria2 engine
+        shell: bash
+        run: bash scripts/check_no_engine.sh dist desktop/build/bin
+
+      - name: Installer smoke test (install, launch, upgrade, uninstall)
+        shell: pwsh
+        env:
+          PREVIOUS_INSTALLER: ${{ steps.previous.outputs.installer }}
+        run: |
+          $installer = if (Test-Path dist/release/Conduit-windows-amd64-setup.exe) { 'dist/release/Conduit-windows-amd64-setup.exe' } else { 'dist/Conduit-windows-amd64-setup.exe' }
+          # A hashtable splat binds by parameter name; an array splat would pass
+          # "-PreviousInstaller" as a positional string.
+          $testArgs = @{ Installer = $installer }
+          if ($env:PREVIOUS_INSTALLER) { $testArgs.PreviousInstaller = $env:PREVIOUS_INSTALLER }
+          ./scripts/test_installer_windows.ps1 @testArgs
+
+      - name: Upload build
+        if: ${{ !inputs.release }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-windows
+          path: |
+            dist/*.zip
+            dist/*-setup.exe
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload release files
+        if: ${{ inputs.release }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 30

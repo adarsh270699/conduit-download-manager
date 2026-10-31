@@ -1,0 +1,144 @@
+# Publishes a GitHub Release when a version tag is pushed.
+#
+# The tag must equal "v" + daemon/version/VERSION, point at a commit on main
+# (or a release/* branch for hotfixes), and have a CHANGELOG.md section.
+# A tag with a prerelease suffix (v1.3.0-rc.1) becomes a GitHub prerelease;
+# a plain tag becomes the latest release. See docs/RELEASING.md.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+# Never run two publishes for the same tag at once, and never cancel one
+# half way through.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify tag
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: daemon/go.mod
+          cache-dependency-path: daemon/go.sum
+
+      - name: Tag matches VERSION and CHANGELOG
+        working-directory: daemon
+        run: go run ./tools/release check -tag "$GITHUB_REF_NAME"
+
+      - name: Tagged commit is on main or a release branch
+        run: |
+          git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
+          for branch in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin/main 'refs/remotes/origin/release/*'); do
+            if git merge-base --is-ancestor "$GITHUB_SHA" "$branch"; then
+              echo "$GITHUB_REF_NAME is on $branch"
+              exit 0
+            fi
+          done
+          echo "::error::$GITHUB_REF_NAME ($GITHUB_SHA) is not on main or a release/* branch. Tag a merged commit."
+          exit 1
+
+      - name: Read version
+        id: version
+        working-directory: daemon
+        run: |
+          echo "version=$(go run ./tools/release print)" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$(go run ./tools/release prerelease)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build and test
+    needs: verify
+    uses: ./.github/workflows/build.yml
+    with:
+      release: true
+
+  publish:
+    name: Publish
+    needs: [verify, build]
+    runs-on: ubuntu-24.04
+    # Add required reviewers to this environment in the repository settings
+    # to hold every release for a manual approval.
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+      PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: daemon/go.mod
+          cache-dependency-path: daemon/go.sum
+
+      - name: Download the built files
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: artifacts
+
+      # Both platforms stage the release files and the extension zip.
+      # The Linux copy wins, so each name appears once.
+      - name: Combine assets and write checksums
+        run: |
+          mkdir -p upload
+          cp -a artifacts/release-windows/. upload/
+          cp -a artifacts/release-linux/. upload/
+          (cd upload && sha256sum -- * > SHA256SUMS.txt)
+          echo "Release assets:"
+          (cd upload && ls -l)
+          cat upload/SHA256SUMS.txt
+
+      - name: Record build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: upload/*
+
+      - name: Write release notes
+        run: |
+          {
+            (cd daemon && go run ./tools/release notes "$VERSION")
+            echo
+            echo "---"
+            echo
+            echo "**Verify a download:** compare it with \`SHA256SUMS.txt\`, or check that this workflow built it:"
+            echo
+            echo '```'
+            echo "gh attestation verify Conduit-windows-amd64-setup.exe --repo ${GITHUB_REPOSITORY}"
+            echo '```'
+          } > notes.md
+          cat notes.md
+
+      # Upload everything to a draft first so users never see a release with
+      # missing files, then publish it in one step.
+      - name: Publish the GitHub Release
+        run: |
+          tag="$GITHUB_REF_NAME"
+          flags=()
+          if [[ "$PRERELEASE" == "true" ]]; then flags+=(--prerelease); else flags+=(--latest); fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" upload/* --clobber
+            gh release edit "$tag" --title "Conduit $VERSION" --notes-file notes.md
+          else
+            gh release create "$tag" upload/* --draft --verify-tag --title "Conduit $VERSION" --notes-file notes.md
+          fi
+          gh release edit "$tag" --draft=false "${flags[@]}"

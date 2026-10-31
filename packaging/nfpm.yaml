@@ -1,0 +1,54 @@
+name: conduit
+arch: amd64
+platform: linux
+# The build scripts export VERSION from daemon/version/VERSION.
+# A prerelease such as 1.3.0-rc.1 becomes the Debian version 1.3.0~rc.1.
+version: ${VERSION}
+version_schema: semver
+section: net
+priority: optional
+license: GPL-3.0-or-later
+maintainer: Conduit <conduit@localhost>
+description: |
+  Conduit is a local download manager.
+  The first launch asks for a download folder, then offers the browser extension.
+  apt remove deletes the program files and leaves the home directory in place.
+  Turn autostart off in the app before removal, or delete ~/.config/autostart/conduit.desktop.
+vendor: Conduit
+depends:
+  - aria2
+  - libgtk-3-0
+  - libwebkit2gtk-4.1-0
+  - libayatana-appindicator3-1
+contents:
+  - src: desktop/build/bin/Conduit
+    dst: /usr/bin/conduit
+    file_info:
+      mode: 0755
+  - src: packaging/linux/conduit.desktop
+    dst: /usr/share/applications/conduit.desktop
+  - src: packaging/linux/conduit.png
+    dst: /usr/share/icons/hicolor/256x256/apps/conduit.png
+  - src: LICENSE
+    dst: /usr/share/doc/conduit/LICENSE
+  - src: NOTICE
+    dst: /usr/share/doc/conduit/NOTICE
+  - src: THIRD_PARTY_NOTICES.md
+    dst: /usr/share/doc/conduit/THIRD_PARTY_NOTICES.md
+  - src: SOURCE_OFFER.md
+    dst: /usr/share/doc/conduit/SOURCE_OFFER.md
+  - src: licenses
+    dst: /usr/share/doc/conduit/licenses
+  # Keep the test suite out of the installed extension bundle.
+  - src: extension/manifest.json
+    dst: /usr/share/conduit/extension/manifest.json
+  - src: extension/background.js
+    dst: /usr/share/conduit/extension/background.js
+  - src: extension/content.js
+    dst: /usr/share/conduit/extension/content.js
+  - src: extension/popup
+    dst: /usr/share/conduit/extension/popup
+  - src: extension/offline
+    dst: /usr/share/conduit/extension/offline
+  - src: extension/icons
+    dst: /usr/share/conduit/extension/icons

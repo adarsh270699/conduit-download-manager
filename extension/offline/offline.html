@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conduit - Daemon Offline</title>
+  <link rel="stylesheet" href="offline.css">
+</head>
+<body>
+  <div class="offline-wrapper">
+    <!-- Main Card Container -->
+    <main class="offline-card">
+      <!-- Header -->
+      <header class="offline-header">
+        <div class="brand">
+          <svg class="brand-icon" viewBox="0 0 2048 2048" fill="none" aria-hidden="true">
+            <path fill="var(--accent-blue, #315B8C)" d="M 654 408 V 840 C 654 986, 894 1134, 894 1280 V 1408 H 764 L 1024 1668 V 1280 C 1024 1160, 1175 1060, 1180 980 C 1185 930, 1190 890, 1190 840 V 408 H 1060 V 840 C 1060 920, 1024 970, 1024 1020 C 1024 970, 988 920, 988 840 V 408 H 858 V 840 C 858 890, 863 930, 868 1000 C 868 930, 784 890, 784 840 V 408 H 654 Z" />
+            <path fill="var(--accent-coral, #F2765E)" d="M 1264 408 H 1394 V 840 C 1394 986, 1154 1134, 1154 1280 V 1408 H 1284 L 1024 1668 V 1280 C 1024 1160, 1175 1060, 1180 980 C 1185 930, 1264 890, 1264 840 V 408 H 1264 Z" />
+          </svg>
+          <span class="brand-name">Conduit</span>
+        </div>
+        <div class="status-indicator-pill offline" id="pillStatus">
+          <span class="pulse-dot"></span>
+          <span class="status-label" id="pillText">Daemon Offline</span>
+        </div>
+      </header>
+
+      <!-- Center Radar & Visual Anchor -->
+      <section class="radar-section">
+        <div class="radar-halo">
+          <div class="radar-ring ring-1"></div>
+          <div class="radar-ring ring-2"></div>
+          <div class="radar-core">
+            <svg class="radar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true">
+              <path d="M18.36 5.64a9 9 0 0 1 0 12.72M5.64 5.64a9 9 0 0 0 0 12.72M15.54 8.46a5 5 0 0 1 0 7.08M8.46 8.46a5 5 0 0 0 0 7.08M12 12h.01"/>
+            </svg>
+          </div>
+        </div>
+        <h1 class="headline" id="mainHeadline">Conduit Daemon Not Running</h1>
+        <p class="description">
+          The local acceleration daemon on <code class="mono-code">127.0.0.1:18800</code> is unreachable.
+          Start the daemon to launch the live web dashboard.
+        </p>
+      </section>
+
+      <!-- Auto-Reconnect Status Banner -->
+      <div class="reconnect-banner" id="reconnectBanner">
+        <div class="spinner" id="reconnectSpinner"></div>
+        <span class="reconnect-text" id="reconnectText">Listening for daemon heartbeat...</span>
+        <span class="attempt-count" id="attemptCount">attempt 1</span>
+      </div>
+
+      <!-- Held Queue Notice (Dynamically populated if items are in storage) -->
+      <section class="held-queue-card hidden" id="heldQueueBox">
+        <div class="held-header">
+          <div class="held-title-wrap">
+            <svg class="box-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+              <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+            <span class="held-title">Downloads Held in Offline Queue</span>
+          </div>
+          <span class="held-badge" id="heldCountBadge">0</span>
+        </div>
+        <p class="held-desc">
+          Your browser downloads are securely held in local extension storage. They will be transferred automatically to Conduit the moment the daemon starts.
+        </p>
+        <ul class="held-items-list" id="heldItemsList"></ul>
+      </section>
+
+      <!-- Quick Startup Instructions -->
+      <section class="startup-guide">
+        <h2 class="guide-title">How to Start the Daemon</h2>
+        
+        <!-- OS Tabs -->
+        <div class="guide-tabs">
+          <button class="guide-tab active" id="tabLinux" data-os="linux">Linux</button>
+          <button class="guide-tab" id="tabWindows" data-os="windows">Windows</button>
+        </div>
+
+        <!-- Linux Panel -->
+        <div class="guide-panel" id="panelLinux">
+          <p class="guide-text">Run the self-contained static binary from your terminal:</p>
+          <div class="code-block">
+            <code id="cmdLinux">./dist/conduit-linux-amd64</code>
+            <button class="btn-copy" data-target="cmdLinux" title="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Windows Panel -->
+        <div class="guide-panel hidden" id="panelWindows">
+          <p class="guide-text">Double-click or run from Command Prompt / PowerShell:</p>
+          <div class="code-block">
+            <code id="cmdWindows">.\dist\conduit-windows-amd64.exe</code>
+            <button class="btn-copy" data-target="cmdWindows" title="Copy to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="copy-icon" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <small class="guide-note">Built with silent background execution (zero console window flashing).</small>
+        </div>
+      </section>
+
+      <!-- Primary Action Buttons -->
+      <footer class="offline-footer">
+        <button class="btn btn-primary" id="retryBtn">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          <span id="retryBtnText">Retry Connection Now</span>
+        </button>
+      </footer>
+    </main>
+  </div>
+
+  <script src="offline.js"></script>
+</body>
+</html>

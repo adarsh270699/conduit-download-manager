@@ -1,0 +1,16 @@
+# Keep shell scripts and pinned download metadata LF so they work on Linux.
+*.sh text eol=lf
+*.env text eol=lf
+
+# Windows PowerShell scripts are safest with CRLF.
+*.ps1 text eol=crlf
+
+# Binary assets must never be line-ending converted.
+*.png binary
+*.ico binary
+*.exe binary
+
+# Go sources stay LF on every platform so gofmt reports the same result as CI.
+*.go text eol=lf
+go.mod text eol=lf
+go.sum text eol=lf

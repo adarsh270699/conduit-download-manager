@@ -1,0 +1,19 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "conduit",
+  "outputfilename": "Conduit",
+  "frontend:dir": "frontend",
+  "frontend:install": "",
+  "frontend:build": "",
+  "frontend:dev:watcher": "",
+  "author": {
+    "name": "Conduit"
+  },
+  "info": {
+    "companyName": "Conduit",
+    "productName": "Conduit",
+    "productVersion": "1.2.0",
+    "copyright": "Conduit",
+    "comments": "Download manager"
+  }
+}

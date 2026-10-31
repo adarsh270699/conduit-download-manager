@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add the Conduit extension</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preload" href="/fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/pages.css">
+</head>
+<body>
+  <main class="guide-page">
+    <header class="setup-brand">
+      <svg class="brand-icon" viewBox="0 0 2048 2048" fill="none" aria-hidden="true">
+        <path fill="var(--accent-primary, #315B8C)" d="M 654 408 V 840 C 654 986, 894 1134, 894 1280 V 1408 H 764 L 1024 1668 V 1280 C 1024 1160, 1175 1060, 1180 980 C 1185 930, 1190 890, 1190 840 V 408 H 1060 V 840 C 1060 920, 1024 970, 1024 1020 C 1024 970, 988 920, 988 840 V 408 H 858 V 840 C 858 890, 863 930, 868 1000 C 868 930, 784 890, 784 840 V 408 H 654 Z" />
+        <path fill="var(--accent-secondary, #F2765E)" d="M 1264 408 H 1394 V 840 C 1394 986, 1154 1134, 1154 1280 V 1408 H 1284 L 1024 1668 V 1280 C 1024 1160, 1175 1060, 1180 980 C 1185 930, 1264 890, 1264 840 V 408 H 1264 Z" />
+      </svg>
+      <span class="brand-name">Conduit</span>
+    </header>
+
+    <article class="guide-card">
+      <h1>Add the Conduit extension</h1>
+      <p class="setup-copy">Choose the browser you use. Only those steps stay on the page.</p>
+
+      <div class="guide-chooser" role="group" aria-label="Browser">
+        <button id="chooseChromium" class="btn btn-primary" type="button" aria-pressed="true">Chrome or Edge</button>
+        <button id="chooseFirefox" class="btn btn-secondary" type="button" aria-pressed="false">Firefox</button>
+      </div>
+
+      <p id="pathMissing" class="setup-error hidden">The extension folder is not installed. Install Conduit again, then return to this page.</p>
+
+      <div id="pathBlock" class="guide-path">
+        <span class="form-hint">Extension folder</span>
+        <code id="pathValue" class="guide-code"></code>
+        <button id="copyPathBtn" class="btn btn-secondary" type="button">Copy path</button>
+        <p id="copyStatus" class="form-hint" role="status"></p>
+      </div>
+
+      <ol id="stepsChromium" class="guide-steps">
+        <li>Open <span class="guide-code">chrome://extensions</span> in Chrome, or <span class="guide-code">edge://extensions</span> in Edge.</li>
+        <li>Turn on Developer mode.</li>
+        <li>Choose Load unpacked and select the extension folder. This load stays after the browser restarts.</li>
+      </ol>
+
+      <ol id="stepsFirefox" class="guide-steps hidden">
+        <li>Open <span class="guide-code">about:debugging#/runtime/this-firefox</span>.</li>
+        <li>Choose Load Temporary Add-on.</li>
+        <li>Select <span class="guide-code">manifest.json</span> in the extension folder.</li>
+      </ol>
+      <p class="guide-warning">Firefox removes a temporary add-on when Firefox closes. Load it again after a restart.</p>
+    </article>
+
+    <p class="page-back"><a href="/">Back to downloads</a></p>
+  </main>
+  <script src="/extension.js"></script>
+</body>
+</html>

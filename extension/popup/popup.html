@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conduit Download Interceptor</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="popup-header">
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 2048 2048" fill="none" aria-hidden="true">
+          <path fill="var(--accent, #315B8C)" d="M 654 408 V 840 C 654 986, 894 1134, 894 1280 V 1408 H 764 L 1024 1668 V 1280 C 1024 1160, 1175 1060, 1180 980 C 1185 930, 1190 890, 1190 840 V 408 H 1060 V 840 C 1060 920, 1024 970, 1024 1020 C 1024 970, 988 920, 988 840 V 408 H 858 V 840 C 858 890, 863 930, 868 1000 C 868 930, 784 890, 784 840 V 408 H 654 Z" />
+          <path fill="var(--accent-coral, #F2765E)" d="M 1264 408 H 1394 V 840 C 1394 986, 1154 1134, 1154 1280 V 1408 H 1284 L 1024 1668 V 1280 C 1024 1160, 1175 1060, 1180 980 C 1185 930, 1264 890, 1264 840 V 408 H 1264 Z" />
+        </svg>
+        <span class="brand-title">Conduit</span>
+      </div>
+      <div id="status-badge" class="status-badge checking" role="status" aria-live="polite">
+        <span class="pulse-dot"></span>
+        <span id="status-text">Checking...</span>
+      </div>
+    </header>
+
+    <!-- Interception Controls Card -->
+    <section class="toggle-card">
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-title">Intercept Downloads</span>
+          <span class="toggle-subtitle">Forward browser downloads to Conduit</span>
+        </div>
+        <label class="switch" title="Toggle global interception">
+          <input type="checkbox" id="interception-toggle" checked aria-label="Toggle download interception">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <!-- Per-Site Exclusion Bar -->
+      <div id="site-bypass-row" class="site-bypass-row" style="display: none;">
+        <div class="site-bypass-info">
+          <span class="site-bypass-label">Site:</span>
+          <span id="site-hostname" class="site-hostname">example.com</span>
+        </div>
+        <button id="site-bypass-btn" class="site-bypass-btn" type="button" title="Toggle interception for this site">
+          <span id="site-bypass-status">Active</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Live Active Downloads Section (when Daemon is Online) -->
+    <section id="active-section" class="active-section" style="display: none;">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <span class="section-title">Active Transfers</span>
+          <span id="active-count-badge" class="count-badge">0</span>
+        </div>
+        <div id="aggregate-speed-wrap" class="aggregate-speed-wrap">
+          <span id="aggregate-speed" class="mono-speed">0.0 KB/s</span>
+        </div>
+      </div>
+
+      <!-- Primary in-flight download card -->
+      <div id="active-primary-card" class="active-card" style="display: none;">
+        <div class="active-card-top">
+          <div id="active-filename" class="active-filename" title="Download filename">download.tar.gz</div>
+          <div class="active-card-actions">
+            <button id="active-pause-btn" class="btn-micro" title="Pause download" aria-label="Pause download">
+              <svg id="icon-pause" viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true">
+                <rect x="6" y="4" width="4" height="16"></rect>
+                <rect x="14" y="4" width="4" height="16"></rect>
+              </svg>
+              <svg id="icon-resume" viewBox="0 0 24 24" width="12" height="12" fill="currentColor" style="display: none;" aria-hidden="true">
+                <polygon points="6 4 20 12 6 20"></polygon>
+              </svg>
+            </button>
+            <button id="active-cancel-btn" class="btn-micro btn-micro-danger" title="Cancel download" aria-label="Cancel download">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Hairline Progress Bar -->
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="active-progress-track">
+          <div id="active-progress-bar" class="progress-fill" style="width: 0%;"></div>
+        </div>
+
+        <div class="active-card-meta">
+          <span id="active-length" class="mono-meta">0 MB / 0 MB</span>
+          <span id="active-eta" class="mono-meta">--:--</span>
+        </div>
+      </div>
+
+      <!-- Secondary tasks collapsed hint -->
+      <div id="active-more-summary" class="active-more-summary" style="display: none;">
+        <span id="active-more-text">+1 other task running</span>
+      </div>
+
+      <!-- Idle indicator when connected with 0 active tasks -->
+      <div id="active-idle-box" class="active-idle-box">
+        <span class="idle-dot"></span>
+        <span class="idle-text">Engine idle • 0 active downloads</span>
+      </div>
+    </section>
+
+    <!-- Held Queue Section (when Daemon is Offline or files are queued) -->
+    <section id="queue-section" class="queue-section">
+      <div class="queue-header">
+        <div class="queue-title-wrap">
+          <span class="queue-title">Held Queue</span>
+          <span id="queue-badge" class="queue-count-badge">0</span>
+        </div>
+        <button id="flush-btn" class="btn-flush" title="Forward held downloads to Conduit" disabled>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+            <path d="M20 21H4"></path>
+          </svg>
+          Flush All
+        </button>
+      </div>
+
+      <div id="queue-empty" class="queue-empty">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/>
+          <polyline points="9 12 11 14 15 10"/>
+        </svg>
+        <p>No downloads held in queue.</p>
+        <small>Downloads held while daemon is offline appear here.</small>
+      </div>
+
+      <div id="queue-list" class="queue-list" style="display: none;"></div>
+    </section>
+
+    <!-- Footer Actions -->
+    <footer class="popup-footer">
+      <button id="open-dashboard-btn" class="btn-primary" type="button">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+        Open Web Dashboard
+      </button>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

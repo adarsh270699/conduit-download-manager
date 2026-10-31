@@ -1,0 +1,49 @@
+# Binaries and build artifacts
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+desktop/build/bin/
+desktop/desktop.exe
+
+# The Wails bootstrap page is source, not a build artifact.
+!desktop/frontend/dist/
+!desktop/frontend/dist/**
+
+# Conduit runtime & session files
+*.session
+*.aria2
+
+# Generated analysis and local agent tooling
+.cursor/
+.gemini/
+.impeccable/
+graphify-out/
+**/graphify-out/
+/info
+
+# Dependencies and test output
+node_modules/
+coverage/
+*.log
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Conduit ships no aria2c. Test copies are fetched into .cache/ by scripts/download_aria2_binaries.
+.cache/
