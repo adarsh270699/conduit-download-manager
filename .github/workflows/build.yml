@@ -77,7 +77,7 @@ jobs:
       - name: Verify no aria2c binary is tracked
         run: |
           if git ls-files | grep -E '(^|/)aria2c(\.exe)?$'; then
-            echo "aria2c must not be committed. Conduit gets it at install time; scripts/download_aria2_binaries.sh fills .cache/ for tests."
+            echo "aria2c must not be committed. Conduit gets it at install time; the tests use the system aria2c on Linux, or scripts/download_aria2_binaries.ps1 on Windows."
             exit 1
           fi
 
@@ -114,7 +114,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             build-essential pkg-config \
             libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev \
-            curl zip unzip
+            curl zip unzip aria2
 
       - uses: actions/setup-go@v5
         with:
@@ -137,12 +137,12 @@ jobs:
         working-directory: daemon
         run: go test -race ./...
 
-      - name: Fetch pinned aria2 test engine
-        # Capture the path first. Inside echo, a failed download would leave
-        # CONDUIT_ARIA2C empty, and the engine tests would skip silently.
+      - name: Use the aria2 package for the engine tests
+        # The same package the .deb depends on, so the tests run the engine users get.
         run: |
-          engine="$(bash scripts/download_aria2_binaries.sh linux)"
+          engine="$(command -v aria2c)" || { echo "aria2c was not installed"; exit 1; }
           echo "CONDUIT_ARIA2C=$engine" >> "$GITHUB_ENV"
+          "$engine" --version | sed -n '1p'
 
       - name: Daemon integration tests
         working-directory: daemon
@@ -240,26 +240,35 @@ jobs:
         shell: pwsh
         run: ./scripts/prepare_release_windows.ps1
 
-      # The upgrade test starts from the most recent published release other than
-      # this build. It is skipped when there is none yet.
+      # The upgrade test starts from the highest published release below this
+      # build, chosen by semver (release previous). It is skipped only when no
+      # earlier release exists or that release has no Windows installer. Any
+      # failed lookup or download fails the job instead of skipping the test.
       - name: Download the previous release installer
         id: previous
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $current = (Get-Content daemon/version/VERSION -Raw).Trim()
-          $tags = gh release list --repo "$env:GITHUB_REPOSITORY" --exclude-drafts --limit 30 --json tagName --jq '.[].tagName'
-          $previous = $tags | Where-Object { $_ -ne "v$current" } | Select-Object -First 1
+          $tags = @(gh release list --repo "$env:GITHUB_REPOSITORY" --exclude-drafts --limit 100 --json tagName --jq '.[].tagName')
+          if ($LASTEXITCODE -ne 0) { throw "gh release list failed with exit code $LASTEXITCODE" }
+          Push-Location daemon
+          $previous = "$(& go run ./tools/release previous @tags)".Trim()
+          $exit = $LASTEXITCODE
+          Pop-Location
+          if ($exit -ne 0) { throw "release previous failed with exit code $exit" }
           if (-not $previous) { Write-Host 'No earlier release; skipping the upgrade test.'; exit 0 }
+          $assets = @(gh release view $previous --repo "$env:GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          if ($LASTEXITCODE -ne 0) { throw "gh release view $previous failed with exit code $LASTEXITCODE" }
+          if ($assets -notcontains 'Conduit-windows-amd64-setup.exe') {
+            Write-Host "$previous has no Windows installer; skipping the upgrade test."
+            exit 0
+          }
           New-Item -ItemType Directory -Force previous | Out-Null
           gh release download $previous --repo "$env:GITHUB_REPOSITORY" --pattern 'Conduit-windows-amd64-setup.exe' --dir previous
-          if ($LASTEXITCODE -eq 0 -and (Test-Path previous/Conduit-windows-amd64-setup.exe)) {
-            "installer=$((Resolve-Path previous/Conduit-windows-amd64-setup.exe).Path)" >> $env:GITHUB_OUTPUT
-            Write-Host "Upgrade test starts from $previous"
-          } else {
-            Write-Host "$previous has no Windows installer; skipping the upgrade test."
-          }
+          if ($LASTEXITCODE -ne 0) { throw "download of $previous failed with exit code $LASTEXITCODE" }
+          "installer=$((Resolve-Path previous/Conduit-windows-amd64-setup.exe).Path)" >> $env:GITHUB_OUTPUT
+          Write-Host "Upgrade test starts from $previous"
 
       - name: Check the build ships no aria2 engine
         shell: bash

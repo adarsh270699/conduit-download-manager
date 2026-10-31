@@ -10,6 +10,7 @@
 //	go run ./tools/release check -tag v1.3.0
 //	go run ./tools/release notes 1.3.0      # CHANGELOG section for the release body
 //	go run ./tools/release prerelease       # "true" or "false"
+//	go run ./tools/release previous v1.2.0 v1.1.0  # candidate tags: prints the highest one older than VERSION
 //
 // -root points at the repository root and defaults to the parent directory.
 package main
@@ -32,7 +33,7 @@ func main() {
 
 func run(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: release <print|bump|check|notes|prerelease> [flags]")
+		return fmt.Errorf("usage: release <print|bump|check|notes|prerelease|previous> [flags]")
 	}
 	cmd, rest := args[0], args[1:]
 	fs := flag.NewFlagSet(cmd, flag.ContinueOnError)
@@ -92,6 +93,15 @@ func run(args []string) error {
 			return err
 		}
 		fmt.Println(notes)
+	case "previous":
+		v, err := repo.Current()
+		if err != nil {
+			return err
+		}
+		// Prints the tag to test an upgrade from, or nothing when none is older.
+		if tag := release.Previous(v, fs.Args()); tag != "" {
+			fmt.Println(tag)
+		}
 	default:
 		return fmt.Errorf("unknown command %q", cmd)
 	}

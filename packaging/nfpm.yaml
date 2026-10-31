@@ -8,7 +8,7 @@ version_schema: semver
 section: net
 priority: optional
 license: GPL-3.0-or-later
-maintainer: Conduit <conduit@localhost>
+maintainer: Conduit <61917297+adarsh270699@users.noreply.github.com>
 description: |
   Conduit is a local download manager.
   The first launch asks for a download folder, then offers the browser extension.

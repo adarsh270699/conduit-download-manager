@@ -11,7 +11,7 @@ Thanks for helping improve Conduit. This guide covers the local workflow, the qu
   - Wails v2.11.0: `go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0`
   - Windows: NSIS 3.
   - Ubuntu 24.04: `gcc`, `libgtk-3-dev`, `libwebkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`, and `nfpm`.
-- Conduit does not ship aria2c. Integration tests need one: `make test-all` fetches a pinned test copy into `.cache/aria2/`, or set `CONDUIT_ARIA2C` to a binary you choose.
+- Conduit does not ship aria2c. Integration tests need one. On Linux, `sudo apt install aria2` provides it. On Windows, `make test-all` fetches the pinned copy into `.cache/aria2/`. Set `CONDUIT_ARIA2C` to use another binary.
 
 ## Repository layout
 
@@ -30,7 +30,7 @@ Generated or local-only directories (`dist/`, `graphify-out/`, `.cursor/`, `.gem
 ```bash
 make check              # go vet + Go unit tests (daemon and desktop) + extension tests
 make version-check      # every version field agrees with daemon/version/VERSION
-make test-all           # adds live aria2 integration tests (fetches a pinned test engine)
+make test-all           # adds live aria2 integration tests (Linux: install aria2 with apt first)
 make fmt                # gofmt the Go tree
 (cd desktop && go test ./...)   # Wails shell
 ```

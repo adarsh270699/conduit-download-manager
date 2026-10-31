@@ -188,7 +188,7 @@ Prerequisites and exact commands are in [README.md](../README.md) and [CONTRIBUT
 - `scripts/build_linux.sh` builds the native app and extension zip. There is no Linux installer yet.
 - `make all` cleans `dist/`, packages the extension, and cross-compiles Linux and Windows headless daemons with `CGO_ENABLED=0`.
 
-Conduit ships no aria2c. The daemon looks for `aria2c` in this order: the `CONDUIT_ARIA2C` environment variable; `enginePath` in `config.json`; `engine\aria2c.exe` beside the Windows executable (written by the installer); `bin/aria2c` in the config directory (placed by hand); then the system `PATH` (the Linux `.deb` depends on `aria2`). The first two are explicit settings: if they point at a missing file, the engine is reported missing rather than falling back to another binary. Only the installer and config-directory locations count as Conduit-managed, so the process sweep never stops an aria2c that Conduit did not start from one of them. `scripts/download_aria2_binaries.sh` and `.ps1` fill `.cache/aria2/` with the pinned build for tests. When no engine is found, `/api/health` reports `"engine": "missing"` with an `engineHint`, and the daemon keeps checking, so an engine placed by hand is picked up without a restart.
+Conduit ships no aria2c. The daemon looks for `aria2c` in this order: the `CONDUIT_ARIA2C` environment variable; `enginePath` in `config.json`; `engine\aria2c.exe` beside the Windows executable (written by the installer); `bin/aria2c` in the config directory (placed by hand); then the system `PATH` (the Linux `.deb` depends on `aria2`). The first two are explicit settings: if they point at a missing file, the engine is reported missing rather than falling back to another binary. Only the installer and config-directory locations count as Conduit-managed, so the process sweep never stops an aria2c that Conduit did not start from one of them. `scripts/download_aria2_binaries.ps1` fills `.cache/aria2/windows/` with the pinned build for Windows tests. Linux tests use the aria2 package. When no engine is found, `/api/health` reports `"engine": "missing"` with an `engineHint`, and the daemon keeps checking, so an engine placed by hand is picked up without a restart.
 - `make build-windows` runs `scripts/build_windows.ps1`: `wails build`, the zips, then NSIS with the pinned aria2 URL and hash.
 - `make build-linux` runs `wails build` on Ubuntu and then `nfpm`.
 - `make test` runs Go unit tests and the extension suite.
@@ -207,7 +207,7 @@ The embedded UI is compiled into the daemon with `//go:embed web/*`, so the bina
 | Extension | `node extension/test/test_extension.js` | Filter rules, cookie serialization, filename extraction, online/offline branches, Chrome/Firefox paths, redirects, badge states, queue pruning. |
 | Linux harness | `make verify` | Cross-compilation, PE subsystem, extension zip, Go tests with race detector, live daemon smoke test. |
 
-Unit tests and builds need no engine. Integration tests skip unless `CONDUIT_ARIA2C` names an aria2c binary; `make test-all` supplies a pinned test copy.
+Unit tests and builds need no engine. Integration tests skip unless `CONDUIT_ARIA2C` names an aria2c binary; `make test-all` uses `CONDUIT_ARIA2C` when it is set. Otherwise it fetches the pinned copy on Windows and uses the aria2 package on Linux.
 
 CI runs formatting, vet, race-enabled unit and integration tests, extension tests, and both daemon cross-builds on Ubuntu.
 

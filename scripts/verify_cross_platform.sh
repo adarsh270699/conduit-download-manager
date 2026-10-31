@@ -6,8 +6,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR" || exit 1
 
 # The daemon downloads through aria2c. Use CONDUIT_ARIA2C when it is set,
-# otherwise fetch the pinned test copy, as make test-all does.
-if [[ -z "${CONDUIT_ARIA2C:-}" ]]; then CONDUIT_ARIA2C="$(bash scripts/download_aria2_binaries.sh linux)"; fi
+# otherwise the aria2c that the aria2 package installs (sudo apt install aria2).
+if [[ -z "${CONDUIT_ARIA2C:-}" ]]; then CONDUIT_ARIA2C="$(command -v aria2c || true)"; fi
+[[ -n "$CONDUIT_ARIA2C" ]] || { echo "FAIL: install aria2 (sudo apt install aria2) or set CONDUIT_ARIA2C" >&2; exit 1; }
 export CONDUIT_ARIA2C
 
 echo "=========================================================="

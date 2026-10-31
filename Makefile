@@ -9,14 +9,15 @@ GO_LDFLAGS=-X conduit/daemon/version.Commit=$(COMMIT)
 # nfpm reads VERSION from the environment.
 export VERSION
 
-# Conduit ships no aria2c. Integration tests run a real one: CONDUIT_ARIA2C when
-# it is set, otherwise the pinned copy that scripts/download_aria2_binaries fetches.
+# Integration tests run a real aria2c. CONDUIT_ARIA2C names one. Otherwise Linux
+# uses the aria2 package (sudo apt install aria2), and Windows uses the pinned
+# copy that scripts/download_aria2_binaries.ps1 fetches into .cache/.
 ifeq ($(OS),Windows_NT)
-ARIA2_FETCH=powershell -NoProfile -ExecutionPolicy Bypass -File scripts/download_aria2_binaries.ps1 -Platform Windows
+ARIA2_FETCH=powershell -NoProfile -ExecutionPolicy Bypass -File scripts/download_aria2_binaries.ps1
 ARIA2_TEST_BIN=$(CURDIR)/.cache/aria2/windows/aria2c.exe
 else
-ARIA2_FETCH=bash scripts/download_aria2_binaries.sh linux
-ARIA2_TEST_BIN=$(CURDIR)/.cache/aria2/linux/aria2c
+ARIA2_FETCH=echo "Install it with: sudo apt install aria2, or set CONDUIT_ARIA2C." >&2; exit 1
+ARIA2_TEST_BIN=$(shell command -v aria2c 2>/dev/null)
 endif
 
 .PHONY: version version-check all clean aria2-test-engine license-bundle build-linux build-windows build-daemon build-daemon-linux build-daemon-windows extension test test-all test-extension fmt vet check verify verify-all
@@ -34,10 +35,10 @@ clean:
 	rm -rf $(DIST_DIR)
 	mkdir -p $(DIST_DIR)
 
-# Fetch the pinned aria2c that integration tests use, into .cache/aria2.
+# Make sure integration tests have an aria2c before they run.
 aria2-test-engine:
 	@if [ -z "$$CONDUIT_ARIA2C" ] && [ ! -f "$(ARIA2_TEST_BIN)" ]; then \
-		echo "Fetching pinned aria2 test engine..."; \
+		echo "No aria2c for the integration tests."; \
 		$(ARIA2_FETCH); \
 	fi
 

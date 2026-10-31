@@ -1,22 +1,17 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-    Fetch the pinned aria2c binary for development and tests.
+    Fetch the pinned aria2c.exe for the Windows integration tests.
 
 .DESCRIPTION
-    Conduit does not ship aria2c. The installer downloads it on Windows, and
-    Linux installs get it from apt. Tests and local runs use a copy in
-    .cache\aria2\<platform>\, which this script fills and verifies. It prints the
-    path. Set CONDUIT_ARIA2C to that path to run the engine tests.
-
-.PARAMETER Platform
-    Windows (default) or Linux.
+    Conduit does not ship aria2c. The Windows installer downloads the pinned
+    build, and Linux uses the aria2 package from apt. This script fills
+    .cache\aria2\windows\ with the pinned copy for local Windows test runs,
+    verifies its SHA-256, and prints the path. Set CONDUIT_ARIA2C to that path
+    to run the engine tests.
 #>
 [CmdletBinding()]
-param(
-    [ValidateSet('Windows', 'Linux')]
-    [string]$Platform = 'Windows'
-)
+param()
 
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -37,18 +32,11 @@ foreach ($line in Get-Content -LiteralPath $EnvFile) {
         $settings[$matches[1]] = $matches[2]
     }
 }
+$url = $settings['ARIA2_WIN_URL']
+$expected = $settings['ARIA2_WIN_SHA256'].ToLowerInvariant()
+$name = 'aria2c.exe'
 
-if ($Platform -eq 'Windows') {
-    $url = $settings['ARIA2_WIN_URL']
-    $expected = $settings['ARIA2_WIN_SHA256'].ToLowerInvariant()
-    $name = 'aria2c.exe'
-} else {
-    $url = $settings['ARIA2_LINUX_URL']
-    $expected = $settings['ARIA2_LINUX_SHA256'].ToLowerInvariant()
-    $name = 'aria2c'
-}
-
-$OutDir = Join-Path $Root (Join-Path '.cache\aria2' $Platform.ToLowerInvariant())
+$OutDir = Join-Path $Root '.cache\aria2\windows'
 $OutPath = Join-Path $OutDir $name
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 

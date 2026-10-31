@@ -153,7 +153,7 @@ The headless daemon cross-compiles with `CGO_ENABLED=0`. The native window requi
 
 Conduit does not ship aria2c. The Windows installer downloads the pinned aria2 1.37.0 release and checks its SHA-256. Linux packages depend on the `aria2` package. For a standalone build, place an `aria2c` binary where Conduit looks (see `docs/ARCHITECTURE.md`), or set `CONDUIT_ARIA2C` to its path.
 
-The download URLs and SHA-256 values are pinned in `scripts/aria2_binaries.env`. To fetch the pinned build for tests, run `scripts/download_aria2_binaries.sh linux` (or `scripts/download_aria2_binaries.ps1` on Windows). It verifies the download and prints the path.
+The Windows download URL and SHA-256 are pinned in `scripts/aria2_binaries.env`. On Windows, `scripts/download_aria2_binaries.ps1` fetches the pinned build for tests and verifies it. On Linux, the tests use the `aria2c` from the `aria2` package (`sudo apt install aria2`).
 
 ### Quick build scripts
 
@@ -241,7 +241,7 @@ To reproduce a release locally without publishing, run `scripts\prepare_release_
 
 ## Verification
 
-Unit tests and builds need no engine. Integration tests need one: `make test-all` fetches a pinned test copy into `.cache/aria2/`, or set `CONDUIT_ARIA2C` to a binary you choose.
+Unit tests and builds need no engine. Integration tests need one. On Linux, `sudo apt install aria2` provides it. On Windows, `make test-all` fetches the pinned copy into `.cache/aria2/`. Set `CONDUIT_ARIA2C` to use another binary.
 
 ```bash
 (cd daemon && go test ./...)

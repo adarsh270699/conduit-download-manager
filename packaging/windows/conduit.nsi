@@ -155,7 +155,7 @@ Section "Uninstall"
   ; Deep clean is an explicit choice, not the default. The warning is shown
   ; before the app is stopped or any Conduit file is removed.
   StrCpy $1 "keep"
-  MessageBox MB_YESNO|MB_ICONEXCLAMATION "Deep clean will:$\r$\n$\r$\n- Stop all Conduit download engines (aria2c), including leftovers from previous launches.$\r$\n- Delete the aria2c.exe copy under %AppData%\Conduit\bin, if one was placed there.$\r$\n- Delete all Conduit settings, download session data, and cached app data.$\r$\n$\r$\nIn-progress Conduit downloads will be interrupted. Downloaded files and partial downloads are kept. Other applications' aria2c processes are not affected.$\r$\n$\r$\nChoose Yes for deep clean, or No to keep your settings for a future reinstall." /SD IDNO IDNO NormalUninstall
+  MessageBox MB_YESNO|MB_ICONEXCLAMATION "Deep clean will:$\r$\n$\r$\n- Stop all Conduit download engines (aria2c), including leftovers from previous launches.$\r$\n- Delete the aria2c.exe copy under %AppData%\Conduit\bin, if one was placed there.$\r$\n- Delete all Conduit settings, download session data, and cached app data.$\r$\n$\r$\nIn-progress Conduit downloads will be interrupted. Downloaded files and partial downloads are kept. Other applications' aria2c processes are not affected.$\r$\n$\r$\nChoose Yes to deep clean, or No to continue. The next question asks whether to keep your settings." /SD IDNO IDNO NormalUninstall
   StrCpy $1 "purge"
   Goto CleanupModeReady
 

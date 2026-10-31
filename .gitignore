@@ -45,5 +45,5 @@ Thumbs.db
 *.swp
 *.swo
 
-# Conduit ships no aria2c. Test copies are fetched into .cache/ by scripts/download_aria2_binaries.
+# Conduit ships no aria2c. Windows test copies are fetched into .cache/ by scripts/download_aria2_binaries.ps1.
 .cache/

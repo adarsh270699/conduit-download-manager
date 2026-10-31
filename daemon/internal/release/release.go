@@ -335,3 +335,22 @@ func (r Repo) Notes(version string) (string, error) {
 	}
 	return body, nil
 }
+
+// Previous returns the highest candidate older than current, or "" when none
+// is. Candidates are release tags such as v1.2.0; the leading v is optional.
+// Tags that do not parse are skipped. The result is the tag as given, so it can
+// go straight to gh release download.
+func Previous(current Version, candidates []string) string {
+	best := ""
+	var bestVersion Version
+	for _, tag := range candidates {
+		v, err := Parse(strings.TrimPrefix(tag, "v"))
+		if err != nil || v.Compare(current) >= 0 {
+			continue
+		}
+		if best == "" || v.Compare(bestVersion) > 0 {
+			best, bestVersion = tag, v
+		}
+	}
+	return best
+}

@@ -206,3 +206,29 @@ func TestRepositoryVersionsAgree(t *testing.T) {
 		t.Fatalf("version fields disagree; run `go run ./tools/release bump <version>` instead of editing by hand:\n%v", err)
 	}
 }
+
+func TestPrevious(t *testing.T) {
+	cases := []struct {
+		current string
+		tags    []string
+		want    string
+	}{
+		{"1.2.1", []string{"v1.2.0", "v1.1.0"}, "v1.2.0"},
+		// The input is unsorted, so the answer is neither the first nor the last tag.
+		{"1.2.0", []string{"v1.1.0", "v1.2.0-rc.1", "v1.0.0"}, "v1.2.0-rc.1"},
+		{"1.3.0", []string{"v1.3.0-rc.1", "v1.2.0"}, "v1.3.0-rc.1"},
+		{"1.2.0", []string{"v1.2.0", "v1.3.0"}, ""},
+		{"1.2.0", nil, ""},
+		{"1.2.0", []string{"latest", "1.1.0", "v1.0.0"}, "1.1.0"},
+		{"1.2.0-rc.2", []string{"v1.2.0", "v1.2.0-rc.1"}, "v1.2.0-rc.1"},
+	}
+	for _, c := range cases {
+		current, err := Parse(c.current)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := Previous(current, c.tags); got != c.want {
+			t.Errorf("Previous(%s, %v) = %q, want %q", c.current, c.tags, got, c.want)
+		}
+	}
+}
