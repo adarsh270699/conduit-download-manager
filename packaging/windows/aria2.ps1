@@ -7,7 +7,9 @@
     Downloads the pinned aria2 release archive, extracts aria2c.exe, checks its
     SHA-256, and copies it to the destination. A copy that already has the
     expected hash is left in place, so upgrades work offline. Exits 0 on
-    success and 1 on any failure.
+    success and 1 on any failure. Each step is also written to
+    %TEMP%\conduit-aria2-install.log, because the installer does not show this
+    script's output.
 
 .PARAMETER Url
     The aria2 release archive to download.
@@ -27,16 +29,26 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 $expected = $Sha256.ToLowerInvariant()
+$LogPath = Join-Path ([System.IO.Path]::GetTempPath()) 'conduit-aria2-install.log'
+
+function Write-Log([string]$Message) {
+    $line = '{0} {1}' -f (Get-Date -Format 's'), $Message
+    Write-Host $line
+    Add-Content -LiteralPath $LogPath -Value $line -Encoding utf8 -ErrorAction SilentlyContinue
+}
 
 function Get-FileSha256([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
+Set-Content -LiteralPath $LogPath -Value '' -Encoding utf8 -ErrorAction SilentlyContinue
+Write-Log "aria2 install to $Destination from $Url"
+
 $status = 1
 $work = $null
 try {
     if ((Test-Path -LiteralPath $Destination) -and ((Get-FileSha256 $Destination) -eq $expected)) {
-        Write-Host 'aria2c.exe is already installed and verified.'
+        Write-Log 'aria2c.exe is already installed and verified.'
         $status = 0
     } else {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -44,7 +56,18 @@ try {
         New-Item -ItemType Directory -Path $work | Out-Null
 
         $zip = Join-Path $work 'aria2.zip'
-        Invoke-WebRequest -Uri $Url -OutFile $zip -UseBasicParsing
+        # A dropped connection should not fail the install, so try three times.
+        for ($attempt = 1; $attempt -le 3; $attempt++) {
+            try {
+                Invoke-WebRequest -Uri $Url -OutFile $zip -UseBasicParsing
+                break
+            } catch {
+                Write-Log "download attempt $attempt failed: $($_.Exception.Message)"
+                if ($attempt -eq 3) { throw }
+                Start-Sleep -Seconds (5 * $attempt)
+            }
+        }
+        Write-Log 'downloaded the archive'
 
         $extract = Join-Path $work 'extracted'
         Expand-Archive -LiteralPath $zip -DestinationPath $extract -Force
@@ -59,11 +82,11 @@ try {
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Destination) | Out-Null
         Copy-Item -LiteralPath $found.FullName -Destination $Destination -Force
         Unblock-File -LiteralPath $Destination -ErrorAction SilentlyContinue
-        Write-Host "Installed $Destination"
+        Write-Log "installed $Destination"
         $status = 0
     }
 } catch {
-    Write-Host "aria2 install failed: $($_.Exception.Message)"
+    Write-Log "aria2 install failed: $($_.Exception.Message)"
 } finally {
     if ($work) {
         Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue

@@ -44,6 +44,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# The daemon falls back to an aria2c on PATH. Take those folders out of PATH and
+# drop CONDUIT_ARIA2C, so the engine checks below test the installed engine.
+Remove-Item -LiteralPath Env:CONDUIT_ARIA2C -ErrorAction SilentlyContinue
+$env:PATH = (($env:PATH -split ';') | Where-Object { $_.Trim('"') -and -not (Test-Path -LiteralPath (Join-Path $_.Trim('"') 'aria2c.exe') -ErrorAction SilentlyContinue) }) -join ';'
+
 $Root = Split-Path -Parent $PSScriptRoot
 if (-not $Installer) {
     $Installer = Join-Path $Root 'dist\Conduit-windows-amd64-setup.exe'
@@ -53,6 +58,7 @@ $Expected = (Get-Content -LiteralPath (Join-Path $Root 'daemon\version\VERSION')
 $UninstallKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\Conduit'
 $ConfigFile = Join-Path $env:APPDATA 'conduit\config.json'
 $HealthUrl = 'http://127.0.0.1:18800/api/health'
+$Aria2Log = Join-Path ([System.IO.Path]::GetTempPath()) 'conduit-aria2-install.log'
 
 $script:failures = 0
 function Pass([string]$Message) { Write-Host "  ok   $Message" -ForegroundColor Green }
@@ -149,6 +155,7 @@ if ($PreviousInstaller) {
 }
 
 Step 'Silent install'
+Remove-Item -LiteralPath $Aria2Log -Force -ErrorAction SilentlyContinue
 $code = Invoke-Setup $Installer @('/S')
 Check ($code -eq 0) "installer exited 0 (got $code)"
 $dir = Get-InstallDir
@@ -161,6 +168,18 @@ $entry = Get-ItemProperty -Path $UninstallKey
 Check ($entry.DisplayVersion -eq $Expected) "DisplayVersion is $Expected (got $($entry.DisplayVersion))"
 foreach ($rel in @('Conduit.exe', 'uninstall.exe', 'LICENSE', 'NOTICE', 'THIRD_PARTY_NOTICES.md', 'SOURCE_OFFER.md', 'licenses', 'extension\manifest.json', 'extension\background.js', 'engine\aria2c.exe')) {
     Check (Test-Path -LiteralPath (Join-Path $dir $rel)) "installed $rel"
+}
+$engine = Join-Path $dir 'engine\aria2c.exe'
+if (Test-Path -LiteralPath $engine) {
+    $engineVersion = "$(& $engine --version | Select-Object -First 1)"
+    Check ($engineVersion -like 'aria2 version *') "installed aria2c runs (got '$engineVersion')"
+} else {
+    Write-Host "aria2 install log ($Aria2Log):" -ForegroundColor Yellow
+    if (Test-Path -LiteralPath $Aria2Log) {
+        Get-Content -LiteralPath $Aria2Log | ForEach-Object { Write-Host "  $_" }
+    } else {
+        Write-Host '  no log: aria2.ps1 did not run' -ForegroundColor Yellow
+    }
 }
 Check (-not (Test-Path -LiteralPath (Join-Path $dir 'extension\test'))) "extension tests are not installed"
 Check (Test-Path -LiteralPath (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Conduit\Conduit.lnk')) "Start menu shortcut exists"
