@@ -97,14 +97,14 @@ func newTestFeed(t *testing.T) *testFeed {
 // argument is the engine queue; nil means nothing can block an install.
 func newScheduleService(t *testing.T, feed *testFeed, channel updater.Channel, downloads updater.Downloads) *updater.Service {
 	t.Helper()
-	// Downloads come from the test feed on loopback, which the test-only override allows.
-	t.Setenv("CONDUIT_UPDATE_DOWNLOAD_HOSTS", "127.0.0.1")
 	svc, err := updater.New(updater.Options{
 		ConfigDir:      t.TempDir(),
 		APIBase:        feed.URL,
 		CurrentVersion: "1.0.0",
 		Channel:        func() updater.Channel { return channel },
 		Downloads:      downloads,
+		// Downloads come from the test feed on loopback, which the development override allows.
+		DownloadHosts: "127.0.0.1",
 	})
 	if err != nil {
 		t.Fatalf("updater.New: %v", err)

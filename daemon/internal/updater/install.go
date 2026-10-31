@@ -23,14 +23,27 @@ var (
 	ErrUnsupportedChannel = errors.New("not installed by a supported installer")
 	// ErrDownloadsActive means a download could be interrupted by quitting.
 	ErrDownloadsActive = errors.New("downloads are active; wait for them to finish or pause them")
+	// ErrRecordMismatch means update.json names a file other than the one download wrote.
+	ErrRecordMismatch = errors.New("the saved update record does not match the downloaded installer; download it again")
 	// ErrChecksum means the installer on disk no longer matches its recorded hash.
 	ErrChecksum = errors.New("the downloaded installer no longer matches its checksum; download it again")
 )
 
-// debInstallScript installs the downloaded package, then starts Conduit again
-// even if the install was cancelled, so the user is not left with no window.
-// $1 is the .deb path.
-const debInstallScript = `pkexec apt-get install -y "$1"; exec /usr/bin/conduit --background`
+// debRootStep runs as root under pkexec. It copies the package into a directory
+// only root can write, checks the copy against the recorded SHA-256, and installs
+// the copy. The bytes that are checked are the bytes that are installed, so the
+// user cannot swap the file between the check and the install. $1 is the package
+// path and $2 its SHA-256.
+const debRootStep = `tmp=$(mktemp -d) || exit 1
+cp "$1" "$tmp/conduit.deb" && echo "$2  $tmp/conduit.deb" | sha256sum -c - && apt-get install -y "$tmp/conduit.deb"
+status=$?
+rm -rf "$tmp"
+exit $status`
+
+// debInstallScript runs the root step, then starts Conduit again even if the
+// install was cancelled or failed, so the user is not left with no window.
+// $1 is the .deb path and $2 its SHA-256.
+const debInstallScript = `pkexec /bin/sh -c '` + debRootStep + `' sh "$1" "$2"; exec /usr/bin/conduit --background`
 
 // Command is a program the daemon starts after it has quit.
 type Command struct {
@@ -80,8 +93,13 @@ func (s *Service) Install(ctx context.Context) error {
 		s.mu.Unlock()
 		return ErrNotDownloaded
 	}
-	path, want := s.rec.DownloadedPath, s.rec.DownloadedSHA256
-	cmd, err := installCommand(runtime.GOOS, s.channel, path)
+	path, ok := s.recordedInstaller()
+	if !ok {
+		s.mu.Unlock()
+		return ErrRecordMismatch
+	}
+	want := s.rec.DownloadedSHA256
+	cmd, err := installCommand(runtime.GOOS, s.channel, path, want)
 	if err != nil {
 		s.mu.Unlock()
 		return err
@@ -130,12 +148,12 @@ func (s *Service) TakePendingInstall() *Command {
 // channel. Windows runs the NSIS installer silently and asks it to start
 // Conduit in the tray. Linux installs through pkexec, which asks for a
 // password once.
-func installCommand(goos string, ch Channel, path string) (Command, error) {
+func installCommand(goos string, ch Channel, path, sum string) (Command, error) {
 	switch {
 	case goos == "windows" && ch == ChannelWindowsInstaller:
 		return Command{Name: path, Args: []string{"/S", "/LAUNCH=background"}}, nil
 	case goos == "linux" && ch == ChannelDeb:
-		return Command{Name: "/bin/sh", Args: []string{"-c", debInstallScript, "sh", path}}, nil
+		return Command{Name: "/bin/sh", Args: []string{"-c", debInstallScript, "sh", path, sum}}, nil
 	}
 	return Command{}, ErrUnsupportedChannel
 }

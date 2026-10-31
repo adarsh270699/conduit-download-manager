@@ -124,16 +124,13 @@ func TestParseTag(t *testing.T) {
 	}
 }
 
-func TestResolveAPIBasePrecedence(t *testing.T) {
-	t.Setenv(apiBaseEnv, "http://env.example")
+// The release build reads no environment: a configured base wins, and an unset
+// base is GitHub, even when CONDUIT_UPDATE_API is set.
+func TestResolveAPIBaseIgnoresEnvironment(t *testing.T) {
+	t.Setenv("CONDUIT_UPDATE_API", "http://env.example")
 	if got := resolveAPIBase("http://configured.example"); got != "http://configured.example" {
 		t.Errorf("configured base should win, got %s", got)
 	}
-	if got := resolveAPIBase(""); got != "http://env.example" {
-		t.Errorf("CONDUIT_UPDATE_API should apply, got %s", got)
-	}
-
-	t.Setenv(apiBaseEnv, "")
 	if got := resolveAPIBase(""); got != defaultAPIBase {
 		t.Errorf("default base should be GitHub, got %s", got)
 	}

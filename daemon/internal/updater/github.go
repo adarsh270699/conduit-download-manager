@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 
 	"conduit/daemon/internal/release"
@@ -15,10 +14,7 @@ import (
 const (
 	repoSlug       = "adarsh270699/conduit-download-manager"
 	defaultAPIBase = "https://api.github.com"
-	// apiBaseEnv overrides the GitHub API base URL, the way CONDUIT_ARIA2C
-	// overrides the engine path. Tests point it at a local feed.
-	apiBaseEnv = "CONDUIT_UPDATE_API"
-	maxAPIBody = 1 << 20
+	maxAPIBody     = 1 << 20
 )
 
 // githubRelease is the part of GET /releases/latest the updater reads.
@@ -41,14 +37,12 @@ type latestResponse struct {
 	notModified bool
 }
 
-// resolveAPIBase returns the configured base, then CONDUIT_UPDATE_API, then
-// GitHub itself.
+// resolveAPIBase returns the configured base, or GitHub when none is set. The
+// release build never reads the environment, so a feed can only be replaced
+// through Options.
 func resolveAPIBase(configured string) string {
 	if configured != "" {
 		return configured
-	}
-	if env := os.Getenv(apiBaseEnv); env != "" {
-		return env
 	}
 	return defaultAPIBase
 }

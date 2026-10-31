@@ -212,14 +212,26 @@ func TestDownloadRefusesPlainHTTPWithoutRequest(t *testing.T) {
 func TestDownloadRefusesForeignRedirect(t *testing.T) {
 	body := []byte("x")
 	a := newAssetServer(t, "", body, sha256Hex(body))
-	a.redirect = "https://example.com/evil.exe"
+	// The redirect target counts requests. The check must refuse it before any
+	// connection is made, so the count stays at zero.
+	var hits atomic.Int32
+	foreign := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		_, _ = w.Write(body)
+	}))
+	t.Cleanup(foreign.Close)
+	a.redirect = foreign.URL + "/evil.exe"
 	svc := downloadService(t, a)
 	rel, name := offerRelease(t, svc, a, "1.3.0", int64(len(body)))
 	a.sums = fmt.Sprintf("%s  %s\n", sha256Hex(body), name)
 
 	v, _ := release.Parse("1.3.0")
-	if err := svc.download(context.Background(), rel, v); err == nil {
-		t.Fatal("a redirect to a foreign host must be refused")
+	err := svc.download(context.Background(), rel, v)
+	if err == nil || !strings.Contains(err.Error(), "refusing redirect") {
+		t.Fatalf("a redirect off the allow-list must be refused, got %v", err)
+	}
+	if n := hits.Load(); n != 0 {
+		t.Fatalf("the foreign host was contacted %d times", n)
 	}
 	dir := filepath.Join(svc.configDir, updatesDirName, "1.3.0")
 	if _, err := os.Stat(filepath.Join(dir, name+".part")); !os.IsNotExist(err) {

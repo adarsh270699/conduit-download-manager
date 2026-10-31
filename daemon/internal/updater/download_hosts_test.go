@@ -12,14 +12,14 @@ import (
 	"conduit/daemon/internal/release"
 )
 
-// newHostsService builds a service with CONDUIT_UPDATE_DOWNLOAD_HOSTS set to env.
+// newHostsService builds a service whose extra download hosts are env.
 func newHostsService(t *testing.T, env string) *Service {
 	t.Helper()
-	t.Setenv(downloadHostsEnv, env)
 	svc, err := New(Options{
 		ConfigDir:      t.TempDir(),
 		CurrentVersion: "1.0.0",
 		Channel:        func() Channel { return ChannelNone },
+		DownloadHosts:  env,
 	})
 	if err != nil {
 		t.Fatalf("New: %v", err)

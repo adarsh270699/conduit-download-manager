@@ -47,11 +47,15 @@ func main() {
 		return
 	}
 
+	// The update feed can be pointed at a local test server. Only this
+	// development daemon reads these variables; the desktop app never does.
 	running, err := boot.Start(ctx, boot.Options{
-		HTTPPort:    *httpPort,
-		RPCPort:     *rpcPort,
-		DownloadDir: *downloadDir,
-		ConfigDir:   *configDir,
+		HTTPPort:            *httpPort,
+		RPCPort:             *rpcPort,
+		DownloadDir:         *downloadDir,
+		ConfigDir:           *configDir,
+		UpdateAPI:           os.Getenv("CONDUIT_UPDATE_API"),
+		UpdateDownloadHosts: os.Getenv("CONDUIT_UPDATE_DOWNLOAD_HOSTS"),
 	})
 	if errors.Is(err, boot.ErrAlreadyRunning) {
 		log.Printf("Another Conduit instance is already running.")
