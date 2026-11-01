@@ -1,114 +1,70 @@
 ---
-name: Conduit Design System
-description: The warm, enterprise-grade visual language used by the Conduit dashboard, setup flow, extension guide, and browser extension surfaces.
+name: Conduit Departures Board
+description: The download queue as a departures board: a signal-yellow next arrival, departure lines, and status as a lamp and a word.
 colors:
-  primary: "#315B8C"
-  primary-hover: "#264972"
-  primary-pressed: "#1D3858"
-  secondary: "#F2765E"
-  secondary-hover: "#DF634A"
-  secondary-pressed: "#C75139"
-  canvas: "#F5EBDD"
-  surface-1: "#EFE4D4"
-  ink: "#413333"
-  ink-muted: "#685959"
-  inverse-canvas: "#413333"
-  inverse-ink: "#F5EBDD"
-  inverse-ink-muted: "#CBBFA9"
-  on-primary: "#F5EBDD"
-  on-secondary: "#231818"
-  semantic-error: "#B83A2E"
+  board: "#F3F3EF"
+  panel: "#FFFFFF"
+  track: "#E4E4DE"
+  hover: "#EAEAE4"
+  hairline: "#CFCFC8"
+  row-rule: "#E2E2DC"
+  ink: "#111111"
+  ink-secondary: "#4A4A46"
+  ink-muted: "#5E5E58"
+  signal: "#F5C400"
+  signal-hover: "#FFD433"
+  signal-pressed: "#D9AE00"
+  complete: "#1E6B3E"
+  paused: "#8A5A00"
+  error: "#B42318"
+  error-hover: "#91261D"
+  night-board: "#0E0E0E"
+  night-panel: "#1A1A1A"
+  night-ink: "#F4F4F0"
+  night-complete: "#7BC596"
+  night-paused: "#FFA94D"
+  night-error: "#FF7B6E"
 typography:
-  display-xl:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "76px"
-    fontWeight: 300
-    lineHeight: 1.17
-    letterSpacing: "-0.5px"
-  display-lg:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "60px"
-    fontWeight: 300
-    lineHeight: 1.17
-    letterSpacing: "-0.4px"
-  display-md:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "42px"
-    fontWeight: 300
-    lineHeight: 1.20
-    letterSpacing: "0px"
+  display:
+    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif"
+    fontSize: "6rem"
+    fontWeight: 700
+    lineHeight: 1
+    letterSpacing: "-0.02em"
   headline:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "32px"
-    fontWeight: 400
+    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif"
+    fontSize: "1.5rem"
+    fontWeight: 700
     lineHeight: 1.25
-    letterSpacing: "0px"
-  card-title:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "24px"
-    fontWeight: 400
-    lineHeight: 1.33
-    letterSpacing: "0px"
-  subhead:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "20px"
-    fontWeight: 400
-    lineHeight: 1.40
-    letterSpacing: "0px"
-  body-lg:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "18px"
-    fontWeight: 400
-    lineHeight: 1.50
-    letterSpacing: "0px"
-  body:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "16px"
-    fontWeight: 400
-    lineHeight: 1.50
-    letterSpacing: "0.16px"
-  body-sm:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "14px"
-    fontWeight: 400
-    lineHeight: 1.29
-    letterSpacing: "0.16px"
-  body-emphasis:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "14px"
+  title:
+    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif"
+    fontSize: "1.125rem"
     fontWeight: 600
-    lineHeight: 1.29
-    letterSpacing: "0.16px"
-  caption:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "12px"
+    lineHeight: 1.5
+  body:
+    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif"
+    fontSize: "0.875rem"
     fontWeight: 400
-    lineHeight: 1.33
-    letterSpacing: "0.32px"
-  button:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "14px"
-    fontWeight: 400
-    lineHeight: 1.29
-    letterSpacing: "0.16px"
-  eyebrow:
-    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
-    fontSize: "14px"
-    fontWeight: 400
-    lineHeight: 1.29
-    letterSpacing: "0.16px"
+    lineHeight: 1.5
+    letterSpacing: "0"
+  row-name:
+    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 700
+    lineHeight: 1.35
+  label:
+    fontFamily: "IBM Plex Sans, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 700
+    lineHeight: 1.4
+    letterSpacing: "0.06em"
   mono:
     fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-    fontSize: "12px"
+    fontSize: "0.75rem"
     fontWeight: 400
-    lineHeight: 1.33
-    letterSpacing: "0px"
+    lineHeight: 1.4
 rounded:
   none: "0px"
-  xs: "2px"
-  sm: "4px"
-  md: "6px"
-  lg: "8px"
   pill: "9999px"
 spacing:
   xxs: "4px"
@@ -117,416 +73,222 @@ spacing:
   md: "16px"
   lg: "24px"
   xl: "32px"
-  xxl: "48px"
-  section: "96px"
 components:
   button-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.button}"
+    backgroundColor: "{colors.signal}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
     rounded: "{rounded.none}"
-    padding: "12px 16px"
+    padding: "0 16px"
+    height: "36px"
   button-primary-hover:
-    backgroundColor: "{colors.primary-hover}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.button}"
-    rounded: "{rounded.none}"
-    padding: "12px 16px"
-  button-primary-pressed:
-    backgroundColor: "{colors.primary-pressed}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.button}"
-    rounded: "{rounded.none}"
-    padding: "12px 16px"
+    backgroundColor: "{colors.signal-hover}"
+    textColor: "{colors.ink}"
   button-secondary:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.inverse-ink}"
-    typography: "{typography.button}"
+    backgroundColor: "{colors.track}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
     rounded: "{rounded.none}"
-    padding: "12px 16px"
-  button-accent:
-    backgroundColor: "{colors.secondary}"
-    textColor: "{colors.on-secondary}"
-    typography: "{typography.button}"
-    rounded: "{rounded.none}"
-    padding: "12px 16px"
-  button-tertiary:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.primary}"
-    typography: "{typography.button}"
-    rounded: "{rounded.none}"
-    padding: "12px 16px"
-  button-ghost:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.primary}"
-    typography: "{typography.button}"
-    rounded: "{rounded.none}"
-    padding: "12px 16px"
+    padding: "0 16px"
+    height: "36px"
   button-danger:
-    backgroundColor: "{colors.semantic-error}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.button}"
-    rounded: "{rounded.none}"
-    padding: "12px 16px"
-  badge-accent:
-    backgroundColor: "{colors.secondary}"
-    textColor: "{colors.on-secondary}"
-    typography: "{typography.caption}"
-    rounded: "{rounded.none}"
-    padding: "4px 8px"
-  feature-card:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
+    backgroundColor: "{colors.error}"
+    textColor: "#FFFFFF"
     typography: "{typography.body}"
     rounded: "{rounded.none}"
+    padding: "0 16px"
+    height: "36px"
+  tab:
+    textColor: "{colors.ink-secondary}"
+    typography: "{typography.body}"
+    height: "44px"
+  tab-selected:
+    textColor: "{colors.ink}"
+  next-arrival:
+    backgroundColor: "{colors.signal}"
+    textColor: "{colors.ink}"
+    typography: "{typography.display}"
     padding: "24px"
-  feature-card-elevated:
-    backgroundColor: "{colors.surface-1}"
+  queue-row:
+    backgroundColor: "{colors.panel}"
     textColor: "{colors.ink}"
     typography: "{typography.body}"
-    rounded: "{rounded.none}"
-    padding: "24px"
-  product-card:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body}"
-    rounded: "{rounded.none}"
-    padding: "32px"
-  hero-card:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.display-md}"
-    rounded: "{rounded.none}"
-    padding: "48px"
-  cta-banner:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.headline}"
-    rounded: "{rounded.none}"
-    padding: "48px"
-  resource-tile:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.none}"
     padding: "16px"
-  customer-logo-tile:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink-muted}"
-    typography: "{typography.caption}"
-    rounded: "{rounded.none}"
-    padding: "24px"
-  text-input:
-    backgroundColor: "{colors.surface-1}"
+  status-badge:
     textColor: "{colors.ink}"
-    typography: "{typography.body}"
-    rounded: "{rounded.none}"
-    padding: "11px 16px"
-  top-nav:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.ink}"
-    typography: "{typography.body-sm}"
-    height: "48px"
-  utility-bar:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink-muted}"
-    typography: "{typography.caption}"
-    height: "32px"
-  footer:
-    backgroundColor: "{colors.inverse-canvas}"
-    textColor: "{colors.inverse-ink-muted}"
-    typography: "{typography.body-sm}"
-    padding: "64px 32px"
-  telemetry-cell:
-    backgroundColor: "{colors.surface-1}"
-    textColor: "{colors.ink}"
-    typography: "{typography.mono}"
-    rounded: "{rounded.none}"
-    padding: "4px 8px"
+    typography: "{typography.label}"
+  progress-rule:
+    backgroundColor: "{colors.track}"
+    height: "4px"
 ---
 
-# Conduit Design System
+# Design System: Conduit Departures Board
 
 ## Overview
 
-This design system combines the flat geometric discipline of **Carbon Design System** with a warm, organic architectural palette:
-- **Warm Parchment Canvas** (`{colors.canvas}` `#F5EBDD`) as the primary ground.
-- **Warm Alabaster** (`{colors.surface-1}` `#EFE4D4`) for elevated cards, inputs, and section rhythm.
-- **Deep Roasted Espresso** (`{colors.ink}` `#413333`) for authoritative, high-contrast typography (achieving a 10.2:1 contrast ratio that exceeds WCAG AAA).
-- **Deep Ocean Steel Blue** (`{colors.primary}` `#315B8C`) as the primary brand accent for links, key CTAs, and focus indicators (5.93:1 contrast on canvas).
-- **Warm Terracotta Coral** (`{colors.secondary}` `#F2765E`) as the energetic secondary accent for badges, telemetry indicators, notification states, and warm callouts (paired with `{colors.on-secondary}` `#231818` for 6.19:1 contrast, or `#413333` for 4.31:1 contrast).
+**Creative North Star: "The Departures Board"**
 
-The defining choice is **flat geometry**: every CTA, every card, every input, and every container uses square corners (`{rounded.none}` 0px) with thin 1px hairline borders (`#DFD0BD`). There are no rounded pills, no soft diffuse drop shadows, and no atmospheric noise. The system is engineered, tactile, and restrained.
+The download queue reads like a departures board. The next arrival is set large, in minutes, on a signal-yellow band. Every other download is a departure line: its name and folder on the left, its figures in plain numerals, and its state as a lamp and an uppercase word on the right. The visitor learns in one glance what finishes next and which downloads need them.
 
-**IBM Plex Sans** carries the entire typographic hierarchy. Display sizes (76 / 60 / 42px) run at weight **300** — a signature light display treatment that makes large headlines feel calm, deliberate, and authoritative. Body type sits at weight 400 with `letter-spacing: 0.16px` (a Carbon precision detail) and line-height 1.50.
+The system is precise and quiet. It refuses the category default of a filter sidebar over a table of progress bars. Colour does real jobs and nothing decorative: yellow means the next arrival or the thing to press, and the status colours mean the state of a line. Surfaces are flat. Depth comes from the board ground, a white panel, and hairline rules.
 
-The palette balances warmth with precision. Steel Blue anchors structural interactions while Terracotta Coral brings energetic focus to critical data points. Roasted Espresso grounds the entire experience with deep contrast, and inverts at the footer (`{colors.inverse-canvas}` `#413333`) for structural grounding.
+The night board is the same signage on black. The scheme follows the system until the user pins light or dark with the theme button in the top bar. That choice is one daemon setting, so the dashboard, the extension popup and the offline page all show it.
 
 **Key Characteristics:**
-- **Carbon Geometric Rigor** — Flat 0px square corners across all buttons, cards, and inputs with clean 1px hairline strokes.
-- **Warm Architectural Palette** — Warm Cream (`#F5EBDD`), Deep Espresso (`#413333`), Deep Steel Blue (`#315B8C`), and Terracotta Coral (`#F2765E`).
-- **Plex Sans 300 Light Display** — Weight 300 for 42–76px headlines delivers quiet authority without aggressive heavy weights.
-- **Dual Accent Roles** — `{colors.primary}` Deep Steel Blue owns navigational action and primary CTAs; `{colors.secondary}` Warm Coral owns telemetry, notifications, and alert badges.
-- **High-Contrast Grounding** — 10.2:1 text contrast on light ground; footer inverts to `{colors.inverse-canvas}` (`#413333`) with `{colors.inverse-ink-muted}` (`#CBBFA9`).
-- **Precision Tracking** — `letter-spacing: 0.16px` on body type provides crisp optical clarity.
+- Signal yellow marks only the next arrival and the primary action.
+- Status is a lamp plus an uppercase word, never colour alone.
+- Figures are tabular, and monospaced where they count.
+- Square corners, hairline rules, no shadows.
+- Rows keep queue order. They move only when the queue changes.
 
 ## Colors
 
-The palette establishes an organic, warm editorial tone while maintaining rigorous enterprise contrast standards.
+Warm-free and high-contrast: an off-white board, white panels, and ink. Yellow is the only accent.
 
-### Brand & Accent
-- **Deep Ocean Steel Blue** (`{colors.primary}`: `#315B8C`): The primary brand accent. Links, primary CTAs, CTA banner backgrounds, active tab rules, and focus rings. High contrast (5.93:1) on canvas.
-- **Blue Hover** (`{colors.primary-hover}`: `#264972`): Hover state for primary buttons and interactive links.
-- **Blue Pressed** (`{colors.primary-pressed}`: `#1D3858`): Pressed / active state for primary buttons.
-- **Warm Terracotta Coral** (`{colors.secondary}`: `#F2765E`): Secondary brand accent. Urgent telemetry badges, active notification dots, highlight chips, and warm action accents.
-- **Coral Hover** (`{colors.secondary-hover}`: `#DF634A`): Hover state for secondary coral buttons and interactive tags.
-- **Coral Pressed** (`{colors.secondary-pressed}`: `#C75139`): Pressed state for coral interactive elements.
+### Primary
+- **Signal Yellow** (#F5C400): The next arrival band and the primary action button. Hover #FFD433, pressed #D9AE00. Ink text on yellow is 12:1 or better.
+- **Signage Ink** (#111111): All primary text, the header rule, the focus ring in the light theme, and the selected tab underline.
 
-### Surface
-- **Canvas** (`{colors.canvas}`: `#F5EBDD`): Warm cream / parchment foundational page background.
-- **Surface 1** (`{colors.surface-1}`: `#EFE4D4`): Subtle warm alabaster — input fields, alternate-row stripes, subtle section bands, elevated cards.
-- **Surface 2** (`#E4D6C4`): Slightly deeper warm tint — disabled fields, separator fills.
-- **Hairline** (`#DFD0BD`): 1px structural borders on cards, inputs, dividers.
-- **Hairline Strong** (`#413333`): 1px espresso underline and strong structural dividers.
-- **Inverse Canvas** (`{colors.inverse-canvas}`: `#413333`): Deep roasted espresso — footer surface, inverted full-bleed sections, dark notification bars.
-- **Inverse Surface 1** (`#4E3E3E`): One step lighter than inverse canvas — footer column dividers, hovered footer items.
+### Secondary
+- **Secondary Ink** (#4A4A46): Labels and file paths, 8:1 on the panel.
+- **Muted Ink** (#5E5E58): Meta text and placeholders, 6:1 on the panel.
 
-### Text & Ink
-- **Ink** (`{colors.ink}`: `#413333`): All headlines, primary labels, and emphasized body type — deep roasted espresso charcoal. Superb contrast on Canvas (10.20:1, exceeding WCAG AAA).
-- **Ink Muted** (`{colors.ink-muted}`: `#685959`): Secondary type — metadata, sub-headlines, timestamps, captions (5.63:1 on Canvas).
-- **Ink Subtle** (`#8C7C7C`): Tertiary type — helper text, placeholder text, disabled states (3.37:1 on Canvas, below the 4.5:1 that WCAG AA requires for normal text). [REVIEW REQUIRED]
-- **Inverse Ink** (`{colors.inverse-ink}`: `#F5EBDD`): Warm cream on dark espresso — footer headings, inverted hero text (10.20:1 contrast).
-- **Inverse Ink Muted** (`{colors.inverse-ink-muted}`: `#CBBFA9`): Warm muted sand on dark espresso — footer links, secondary footer body.
+### Neutral
+- **Board Ground** (#F3F3EF): The page ground.
+- **Panel White** (#FFFFFF): Queue and control surfaces.
+- **Track Grey** (#E4E4DE): Progress tracks, table headers, and secondary buttons. Hover #EAEAE4.
+- **Hairline** (#CFCFC8): 1px structural borders.
+- **Row Rule** (#E2E2DC): Rules between queue lines.
 
-### Contrast & On-Colors
-- **On Primary** (`{colors.on-primary}`: `#F5EBDD`): Warm cream on deep slate blue (5.93:1 contrast, passing WCAG AA for normal text and AAA for large text).
-- **On Secondary** (`{colors.on-secondary}`: `#231818`): Deep roasted ink on coral (6.19:1 contrast, passing WCAG AA for normal and large text). High-contrast UI pairing `#413333` achieves 4.31:1.
+### Status
+- **Delivered Green** (#1E6B3E): Completed status word, 6.6:1 on the panel.
+- **Held Amber** (#8A5A00): Paused status word, 5.8:1 on the panel.
+- **Returned Red** (#B42318): Failed status word and error text, 6.6:1 on the panel. The destructive button uses the same red with white text, and hover #91261D.
 
-### Semantic
-- **Success Green** (`#2D7A54`): Deep earthy green for completed tasks and online states (4.43:1 on Canvas, below the 4.5:1 that WCAG AA requires for normal text). [REVIEW REQUIRED]
-- **Warning Amber** (`#D97706`): Warm amber for paused states and warnings.
-- **Error Red** (`{colors.semantic-error}`: `#B83A2E`): Burnt crimson red for destructive actions, error badges, danger buttons.
-- **Info Blue** (`#315B8C`): Aligned with primary slate blue.
+### Night board
+- **Night Board** (#0E0E0E), **Night Panel** (#1A1A1A), **Night Ink** (#F4F4F0). Status: Night Delivered #7BC596, Night Held #FFA94D, Night Returned #FF7B6E. The focus ring turns signal yellow.
+
+### Named Rules
+**The One Yellow Rule.** Signal yellow marks the next arrival and the primary action. Nothing else on the page is yellow. Its rarity is what makes the next arrival readable.
 
 ## Typography
 
-### Font Family
+**Display Font:** IBM Plex Sans (self-hosted, latin subset), with the system UI stack as fallback.
+**Figures Font:** the system monospace stack, used for counts, speeds, and times.
 
-- **IBM Plex Sans** — Free and open-source under the SIL Open Font License. Geometric, slightly humanist, designed specifically for enterprise UI. Fallback: `Helvetica Neue, Arial, sans-serif`.
-
-The same family carries display, body, and caption. Hierarchy is carried by **size + weight** rather than by family mixing.
+**Character:** a single humanist sans, set heavy for the things that must be read first and regular for everything else. The figures are monospaced so columns of numbers line up.
 
 ### Hierarchy
+- **Display** (700, 6rem, line-height 1, tracking -0.02em): The next arrival's clock, minutes and seconds. Only that figure. Below 640px the same role sets at 4.5rem so the clock fits a phone.
+- **Headline** (700, 1.5rem, line-height 1.25): The next arrival's filename.
+- **Title** (600, 1.125rem, line-height 1.5): The page title and the queue heading.
+- **Body** (400, 0.875rem, line-height 1.5, tracking 0): Meta text, labels, and buttons. Body text stays at zero tracking; only the uppercase labels and the monumental figure are tracked.
+- **Row name** (700, 1rem, line-height 1.35): The filename on each queue line.
+- **Label** (700, 0.75rem, tracking 0.06em, uppercase): Status words and metric labels.
+- **Figures** (monospace, 0.75rem to 0.875rem, tabular numerals): Speed, time left, progress, counts.
 
-| Token | Size | Weight | Line Height | Letter Spacing | Use |
-|---|---|---|---|---|---|
-| `{typography.display-xl}` | 76px | 300 | 1.17 | -0.5px | Largest hero headline |
-| `{typography.display-lg}` | 60px | 300 | 1.17 | -0.4px | Section opener headlines |
-| `{typography.display-md}` | 42px | 300 | 1.20 | 0px | Sub-section headlines, hero card title |
-| `{typography.headline}` | 32px | 400 | 1.25 | 0px | Card collection heading, FAQ category |
-| `{typography.card-title}` | 24px | 400 | 1.33 | 0px | Feature card title |
-| `{typography.subhead}` | 20px | 400 | 1.40 | 0px | Lead body next to display headlines |
-| `{typography.body-lg}` | 18px | 400 | 1.50 | 0px | Hero subhead, lead paragraphs |
-| `{typography.body}` | 16px | 400 | 1.50 | 0.16px | Default body |
-| `{typography.body-sm}` | 14px | 400 | 1.29 | 0.16px | Card body, footer columns |
-| `{typography.body-emphasis}` | 14px | 600 | 1.29 | 0.16px | Selected tab label, emphasized body line |
-| `{typography.caption}` | 12px | 400 | 1.33 | 0.32px | Captions, meta, utility bar |
-| `{typography.button}` | 14px | 400 | 1.29 | 0.16px | All button labels |
-| `{typography.eyebrow}` | 14px | 400 | 1.29 | 0.16px | Section eyebrows (sentence case 14px) |
-| `{typography.mono}` | 12px | 400 | 1.33 | 0px | Tabular telemetry, speed counters, and code blocks |
-
-### Principles
-
-- **Light-weight display is the brand voice.** Plex Sans at weight 300 for 76px headlines reads as quietly authoritative — switching to 700 would make it look like every other generic tech site.
-- **Carbon's `letter-spacing: 0.16px`** on body sizes is a precision detail. Do not remove it.
-- **Eyebrow typography uses sentence case 14px** — avoids aggressive all-caps tracking.
-- **Line-heights tighten on display, relax on body**: 1.17 at display-xl, 1.50 at body.
+### Named Rules
+**The Monumental Minute Rule.** The next arrival figure is the largest type on the screen. No other figure is set above 1.5rem.
 
 ## Layout
 
-### Spacing System
+A vertical stack. The top bar holds the brand and the connection state on the left, and the header actions on the far right. Below 1000px the metric cards take their own full-width row. Below it sit the filter tabs and the search field. The main area leads with the next arrival band, then the queue panel: a toolbar with the batch actions, a strip of the three queue totals, then the table.
 
-- **Base unit**: 4px (Carbon signature 4-pixel grid).
-- **Tokens**: `{spacing.xxs}` 4px · `{spacing.xs}` 8px · `{spacing.sm}` 12px · `{spacing.md}` 16px · `{spacing.lg}` 24px · `{spacing.xl}` 32px · `{spacing.xxl}` 48px · `{spacing.section}` 96px.
-- Card interior padding: `{spacing.lg}` 24px on feature cards; `{spacing.xl}` 32px on product cards; `{spacing.xxl}` 48px on hero cards and CTA banners.
-- Button padding: 12px vertical · 16px horizontal.
-- Form input padding: 11px vertical · 16px horizontal.
+The spacing scale is a 4px base: 4, 8, 12, 16, 24, and 32px. The next arrival band uses 24px padding. Queue lines use 16px padding and a 1px row rule.
 
-### Grid & Container
+Breakpoints:
+- 1000px: metric cards sit in a row beside the title.
+- 900px: queue lines become stacked cards, and controls reflow.
+- 640px: metric cards stack the label over the figure. The next arrival figure drops to 4.5rem. Batch and add buttons reach 44px.
+- 380px: smallest phones keep one column.
+- Touch (`pointer: coarse`): buttons and tabs reach 44px.
 
-- 16-column grid at desktop, scaling to 8 / 4 columns at tablet / mobile.
-- Max content width sits around 1584px.
-- Card grids are 4-up at desktop, 2-up at tablet, 1-up at mobile.
-
-### Whitespace Philosophy
-
-Alignment adheres to a 4-pixel grid. Sections separate via thin warm alabaster rows (`{colors.surface-1}`) and 1px hairlines (`#DFD0BD`) rather than excessive vertical gaps.
+Under 900px, each queue line becomes a stacked card in the same order: name, progress, speed and ETA, state, actions.
 
 ## Elevation & Depth
 
-| Level | Treatment | Use |
-|---|---|---|
-| 0 (flat) | No shadow, no border | Default for body type, hero text, footer body |
-| 1 (hairline) | 1px `#DFD0BD` border on canvas | Feature cards, inputs, list items |
-| 2 (surface lift) | `{colors.surface-1}` background on canvas | Alternate-row banners, hovered cards |
-| 3 (focus ring) | 2px `{colors.primary}` outline + 1px `#413333` underline | Focused input, focused button |
+Flat. The system uses no box shadows. Depth comes from changes of ground (board to panel to track), hairline rules, and the scrim behind dialogs: rgba(17, 17, 17, 0.55) in light and rgba(0, 0, 0, 0.6) in dark.
 
-Surfaces are flat by default. Depth is carried by surface change (`{colors.canvas}` → `{colors.surface-1}`) and 1px hairlines.
-
-### Decorative Depth
-
-- **Soft slate or coral tint washes** appear behind select hero illustrations without competing with typography.
-- **No diffuse drop shadows.** Cards do not float; they sit grounded on the warm canvas.
+### Named Rules
+**The Flat Board Rule.** Surfaces are flat at rest. Depth is a change of ground or a rule, never a shadow.
 
 ## Shapes
 
-### Border Radius Scale
+Square corners everywhere: buttons, tabs, panels, inputs, progress rules, and dialogs use 0px radius. The one exception is the connection state pill in the top bar, which is fully rounded and marks a live status, not a control.
 
-| Token | Value | Use |
-|---|---|---|
-| `{rounded.none}` | 0px | Default — every button, card, input, container |
-| `{rounded.xs}` | 2px | Small badges (rare exception) |
-| `{rounded.sm}` | 4px | Avatars squared, dropdown menus |
-| `{rounded.md}` | 6px | Documented for system completeness |
-| `{rounded.lg}` | 8px | Documented for system completeness |
-| `{rounded.pill}` | 9999px | Telemetry badges and status pills |
+The brand mark is an SVG converging-halves symbol in signal yellow and ink.
 
-The system commits to flat 0px corners as its primary architectural signature.
+The app icon is the same symbol on a tile: a white tile with ink (the yellow and white icon) or a black tile with off-white (the yellow and black icon), both with signal yellow. The dashboard tab icon follows the theme choice. The extension and desktop icon files are the white tile, since they cannot follow a choice.
 
 ## Components
 
 ### Buttons
+- **Primary:** signal yellow fill, ink text, 0px radius, 36px tall, 0 16px padding. Hover #FFD433, pressed #D9AE00. Used once per view, for Add download.
+- **Secondary:** track grey fill, hairline border, ink text. Used for Pause All, Resume All, and Clear Finished.
+- **Danger:** returned red fill, white text. Used only to confirm a removal.
+- **Focus:** a 2px ink outline, offset 2px, in the light theme; a 2px signal-yellow outline in the dark theme.
 
-**`button-primary`** — Deep Slate Blue solid CTA.
-- Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.button}`, padding 12px 16px, rounded `{rounded.none}`.
-- Pressed state: background `{colors.primary-pressed}`.
-- Hover state: background `{colors.primary-hover}`.
+### Filter Tabs
+- **Shape:** text tabs, 44px tall, with a 2px underline on the selected tab.
+- **Selected:** ink text and an ink underline. The count sits on signal yellow.
+- **Unselected:** secondary ink text. Count in a white box with a hairline border.
 
-**`button-secondary`** — Roasted Espresso solid button.
-- Background `{colors.ink}`, text `{colors.inverse-ink}`, type `{typography.button}`, padding 12px 16px, rounded `{rounded.none}`.
+### Next Arrival Band
+- **Active:** full-width signal-yellow band, ink text. The filename, a meta line with speed and connections, and the time left as a clock in the display figure: `2:14` under an hour, `1:02:14` from an hour. Minutes and seconds are NumberFlow figures, and the seconds field is always two digits.
+- **Idle:** a white panel with a hairline border and the message in ink. No yellow.
+- **Waiting:** an active download with no speed yet keeps the yellow band, names the file, and shows "--" with "Waiting for data".
 
-**`button-accent`** — Warm Terracotta Coral solid CTA.
-- Background `{colors.secondary}`, text `{colors.on-secondary}`, type `{typography.button}`, padding 12px 16px, rounded `{rounded.none}`.
-- Pressed state: background `{colors.secondary-pressed}`.
-- Hover state: background `{colors.secondary-hover}`.
+### Status
+- **Shape:** a lamp and a word. The lamp is an 8px square; the word is uppercase, bold, and tracked.
+- **Colour:** Active uses an ink lamp and ink text, so yellow stays on the next arrival and the primary action. Paused, Failed, and Completed use their status colour for both lamp and word.
 
-**`button-tertiary`** — Warm cream button with Deep Slate Blue 1px border and text.
-- Background `{colors.canvas}`, text `{colors.primary}`, type `{typography.button}`, rounded `{rounded.none}`, padding 12px 16px. Border: 1px `{colors.primary}`.
+### Queue Lines
+- **Shape:** table rows separated by 1px row rules, not boxes. Headers sit on a 2px ink rule.
+- **Content:** name on top, folder beneath in small text; the connection count and the byte counts as meta under progress. Speed, ETA and byte counts are NumberFlow figures with their units as text. An idle line shows a dash.
+- **Progress:** a 4px rule under the progress figure. Ink while moving, held amber when paused, returned red on failure.
+- **Motion:** a newly changed row flashes its background for 1s. It is removed under reduced motion.
 
-**`button-ghost`** — Plain text + chevron, transparent background until hover.
-- Background `{colors.canvas}`, text `{colors.primary}`, type `{typography.button}`, rounded `{rounded.none}`, padding 12px 16px.
+### Metric Cards
+- **Shape:** three cells in one strip on the queue panel, between the toolbar and the table. Hairline rules divide the cells, and the strip takes the panel's ground. Each cell has a label and a figure in the mono stack.
+- **Active speed:** the speed figure is ink, not yellow, to keep yellow for the next arrival. Its number is a NumberFlow figure, and its unit stays text.
 
-**`button-danger`** — Crimson red destructive variant.
-- Background `{colors.semantic-error}`, text `{colors.on-primary}`, type `{typography.button}`, rounded `{rounded.none}`, padding 12px 16px.
+### Dialogs and Toasts
+- **Dialogs:** white panels, hairline borders, 0px radius, the scrim behind. Focus is trapped inside.
+- **Toasts:** white panels with a status word. Errors stay for 7 seconds, and a toast with actions holds while it is hovered or focused.
 
-### Badges & Chips
+### Extension Surfaces
+The browser extension's popup and its offline page follow this system. The extension ships without the dashboard stylesheet, so each keeps its own copy of the tokens and the IBM Plex file under `extension/fonts`. Status is a lamp and a word, the one primary action is signal yellow with ink text, and held and active downloads are departure rows, not boxes. The offline page shows the connection state, the held queue, and the retry action. It carries no setup steps. Each surface has the same theme button, which cycles system, light and dark. The daemon's `theme` setting is the source; the extension keeps a copy so its pages paint correctly while the daemon is off, and a change made while it is off is sent once the daemon answers. The in-page download toast has no button. It reads the same choice from extension storage, which the popup and offline pages keep in step, and it uses the white and black tiles from the board palette. The desktop splash follows the system setting only, since it cannot read the dashboard's saved choice.
 
-**`badge-accent`** — Coral highlight pill / badge.
-- Background `{colors.secondary}`, text `{colors.on-secondary}`, type `{typography.caption}`, rounded `{rounded.none}`, padding 4px 8px.
+### Motion
+Motion follows Apple's fluid-interface rules. The dashboard's springs run in `web/motion.js`, and NumberFlow is the only vendored library (see Vendored libraries). Only transform and opacity move, and nothing loops except the offline radar, which pulses twice and rests.
+- **Press:** a button scales to 0.97 on pointer-down over 100ms, on an ease-out curve, and releases on the same curve. Hover changes colour only.
+- **Moves (queue reorder, tab underline):** a critically damped spring with a response of 0.4s. It reaches about 99% in 0.4s and never overshoots. A retarget carries the velocity already in flight, so an interrupted move continues.
+- **Next arrival:** the filename enters on a critically damped spring with a response of 0.3s, rising 10px. The clock's digits roll on their own with NumberFlow. When the band changes state, its height eases to the new size on the 0.4s move spring, so a resumed download reshapes the band instead of jumping.
+- **Queue lines:** a new line fades in over 260ms.
+- **Dialogs:** enter over 260ms on cubic-bezier(0.16, 1, 0.3, 1) from 8px below. Exit over 160ms on the inverse curve, cubic-bezier(0.7, 0, 0.84, 0), back down the same 8px.
+- **Drawer:** slides in from the right edge over 320ms and out over 220ms on the inverse curve.
+- **Toasts:** rise 12px over 260ms and drop back the same 12px over 160ms.
+- **Progress rules:** move on a 300ms ease-out. They show data rather than a gesture, so they take no spring.
+- **Reduced motion:** all movement is removed. Fades remain. The underline and the reorder land at once.
+- **Bootup:** when the dashboard opens, its elements arrange into place once: the header, the metric cards, the filters and search, the next arrival band, then the queue lines. Each rises 12px and fades in on a critically damped spring with a 0.3s response, staggered about 40ms per group and 30ms per line. The last queue line starts within 0.5s and settles about 0.6s later. A click during it takes effect at once. Under reduced motion it is a fade with no stagger.
+- **Figures:** NumberFlow rolls a changed digit to its new value over 300ms on the ease-out curve cubic-bezier(0.16, 1, 0.3, 1). This applies to the header, the strip, the band and every queue line. A queue line rolls only while it is on screen; a line off screen keeps its values and brings them up to date when it comes into view. It respects reduced motion and animates only while the page is visible.
 
-### Cards & Containers
+### Vendored libraries
+A library may be added when it is vendored under `daemon/internal/server/web/vendor/<name>/`, with its licence and pinned version beside it. The daemon serves it from the binary. The page loads it from `/vendor/`, never from a CDN or any external host, and the dashboard must work with no network.
+- **NumberFlow 0.6.2** (MIT): the speed figure and the time-left figure. Bundled from `dist/index.mjs` into `vendor/number-flow/number-flow.js`, with the licence beside it. The full build takes numbers through `update()` with an Intl format, which the seconds field needs. The lite build takes only pre-formatted parts. The bundling script is a dev-only tool in `tools/vendor-numberflow/` and is not shipped.
 
-**`feature-card`** — Default feature tile.
-- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.none}`, padding 24px. Stroked with 1px `#DFD0BD`.
+## Do's and Don'ts
 
-**`feature-card-elevated`** — Elevated card on `{colors.surface-1}` ground.
-- Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.none}`, padding 24px.
+### Do:
+- **Do** show every status as a lamp and a word together.
+- **Do** keep queue lines in queue order, and move a line only when the queue changes.
+- **Do** use tabular figures for every speed, time, and count.
+- **Do** keep the next arrival band the only yellow on a working screen, apart from the primary action.
+- **Do** keep touch targets at 44px on phones and touch screens.
 
-**`product-card`** — Product showcase tile.
-- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.none}`, padding 32px.
-
-**`hero-card`** — Hero composition card.
-- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.display-md}`, rounded `{rounded.none}`, padding 48px.
-
-**`cta-banner`** — Full-width blue CTA banner.
-- Background `{colors.primary}`, text `{colors.on-primary}`, type `{typography.headline}`, rounded `{rounded.none}`, padding 48px.
-
-**`resource-tile`** — Compact resource / article tile.
-- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body-sm}`, rounded `{rounded.none}`, padding 16px.
-
-**`customer-logo-tile`** — Customer marquee tile.
-- Background `{colors.canvas}`, text `{colors.ink-muted}`, type `{typography.caption}`, rounded `{rounded.none}`, padding 24px. 1px `#DFD0BD` border.
-
-### Inputs & Forms
-
-**`text-input`** — Input field with warm alabaster fill.
-- Background `{colors.surface-1}`, text `{colors.ink}`, type `{typography.body}`, rounded `{rounded.none}`, padding 11px 16px.
-- Focus: 2px `{colors.primary}` underline.
-- Error: 2px `{colors.semantic-error}` bottom underline.
-
-### Navigation
-
-**`top-nav`** — Sticky warm cream bar with brand mark and navigation links.
-- Background `{colors.canvas}`, text `{colors.ink}`, type `{typography.body-sm}`, height 48px. 1px bottom `#DFD0BD`.
-
-**`utility-bar`** — Slim warm alabaster ribbon above top nav.
-- Background `{colors.surface-1}`, text `{colors.ink-muted}`, type `{typography.caption}`, height 32px.
-
-### Footer
-
-**`footer`** — Inverted Roasted Espresso footer.
-- Background `{colors.inverse-canvas}`, text `{colors.inverse-ink-muted}`, type `{typography.body-sm}`, padding 64px 32px.
-
-## Dos and Don'ts
-
-### Do
-
-- Anchor the canvas in warm cream `{colors.canvas}` (`#F5EBDD`) and headlines in roasted espresso `{colors.ink}` (`#413333`) for a 10.2:1 AAA contrast foundation.
-- Use `{rounded.none}` 0px on every CTA, card, input, and container.
-- Pair Plex Sans weight 300 for display sizes (42px+) with weight 400 for body.
-- Reserve `{colors.primary}` Deep Slate Blue (`#315B8C`) for primary CTAs, links, focused-input underlines, and CTA banners.
-- Employ `{colors.secondary}` Warm Coral (`#F2765E`) for purposeful accent badges, status pings, and notification highlights with `{colors.on-secondary}` (`#231818` or `#413333`) text.
-- Apply `letter-spacing: 0.16px` to body sizes for crisp legibility.
-- Use surface stepping (`canvas` → `surface-1`) and 1px hairlines (`#DFD0BD`) for hierarchy. Skip diffuse drop shadows.
-- Invert to `{colors.inverse-canvas}` (`#413333`) at the footer with `{colors.inverse-ink-muted}` (`#CBBFA9`).
-
-### Don't
-
-- Don't use pure white (`#FFFFFF`) or cold neutral grays (`#161616`, `#F4F4F4`); adhere strictly to the warm parchment and roasted espresso foundation.
-- Don't use light or white text on `{colors.secondary}` (`#F2765E`); always use `{colors.on-secondary}` (`#231818` / `#413333`) to ensure high contrast (>4.3:1).
-- Don't round corners on buttons, cards, or inputs. Flat 0px geometry is essential to the brand.
-- Don't bold display headlines. Plex Sans at weight 300 is the brand voice; weight 700 makes it generic.
-- Don't add atmospheric diffuse shadows or glossy glassmorphism.
-- Don't introduce arbitrary third or fourth accent hues outside the documented palette (`#F5EBDD`, `#F2765E`, `#315B8C`, `#413333`).
-
-## Responsive Behavior
-
-### Breakpoints
-
-| Name | Width | Key Changes |
-|---|---|---|
-| Max | 1584px | Max grid; gutters expand |
-| Desktop-XL | 1312px | Default desktop layout |
-| Desktop | 1056px | Card grid 4-up maintained |
-| Tablet | 672px | Card grid 4-up → 2-up; nav becomes hamburger |
-| Mobile | 320px | Single-column; display-xl scales 76px → ~32px |
-
-The dashboard CSS in `daemon/internal/server/web/styles.css` uses media queries at 1000, 900, 640, and 380 px. The breakpoints in this table are design targets. [REVIEW REQUIRED]
-
-### Touch Targets
-
-- Minimum 48px tap target on touch viewports for buttons and inputs.
-- Top-nav links grow to 48px tap height on touch.
-
-### Collapsing Strategy
-
-- **Top nav**: links collapse to hamburger drawer below 672px.
-- **Utility bar**: hides below 672px to reclaim vertical space.
-- **Card grid**: 4-up → 2-up at 1056px → 1-up below 672px.
-- **Display type**: `{typography.display-xl}` 76px scales toward 42px on mobile while preserving weight-300 treatment.
-- **Footer**: 6-column link grid → 3-column at tablet → 1-column at mobile.
-
-## Iteration Guide
-
-1. Focus on ONE component at a time and reference it by its `components:` token name.
-2. Default body to `{typography.body}` at weight 400 with `letter-spacing: 0.16px`.
-3. When introducing a new section, decide whether it sits on `{colors.canvas}` (#F5EBDD) or on `{colors.surface-1}` (#EFE4D4).
-4. Run `npx @google/design.md lint docs/DESIGN.md` after edits.
-5. Add new variants as separate component entries (`button-primary-pressed`, `button-accent`, etc.).
-6. Keep `{colors.primary}` (#315B8C) and `{colors.secondary}` (#F2765E) purposeful; avoid decorative color clutter.
-7. Resist rounded corners — flat 0px geometry defines the system.
-
-## Known Gaps
-
-- Data visualization palettes (multi-series charts) should derive categorical steps from tonal variations of slate blue, coral, espresso, and warm amber.
-- Full high-contrast dark mode inversion token set (inverting canvas to `#413333` throughout) can be defined as an alternate theme mapping.
+### Don't:
+- **Don't** use signal yellow for anything except the next arrival and the primary action.
+- **Don't** add box shadows, gradients, or rounded corners to panels, buttons, or lines.
+- **Don't** put a kicker or eyebrow label above a heading.
+- **Don't** rely on colour alone to show a state.
+- **Don't** animate a row's position. Rows reorder only when the queue reorders.

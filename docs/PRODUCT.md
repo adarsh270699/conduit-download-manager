@@ -53,7 +53,7 @@ A single local agent that combines the `aria2c` engine, an embedded offline dash
 1. **Silent, reliable acceleration:** Intercept transparently and accelerate aggressively. By default Conduit brings its window forward when a download starts, finishes, or fails, because users asked to see these moments. Each event is a Settings checkbox, and turning it off keeps Conduit in the tray.
 2. **No cloud dependency:** Downloads, browsing context, settings, fonts, and the engine stay on the user's machine.
 3. **Offline-first resilience:** The extension degrades to a held queue rather than losing a download when the daemon is not running.
-4. **Lean footprint:** Native Go plus embedded vanilla web assets, not an Electron shell.
+4. **Lean footprint:** Native Go plus embedded web assets, not an Electron shell. A library may be added when it is vendored locally and served by the daemon, with no CDN load at runtime. Each one is recorded in DESIGN.md.
 5. **User sovereignty:** The download folder, queue, connection limits, exclusions, and autostart state are the user's to change.
 
 ## Accessibility and Inclusion

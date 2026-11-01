@@ -1,4 +1,4 @@
-/* Conduit Warm Enterprise Design System - Follows DESIGN.md */
+/* Conduit dashboard tokens: the Departures Board direction, documented in docs/DESIGN.md */
 
 /* IBM Plex Sans, latin subset, variable weights, self-hosted so the app stays offline. */
 @font-face {
@@ -12,46 +12,57 @@
     U+FEFF, U+FFFD;
 }
 
+/*
+ * Departures Board direction. Signage ground, flat panels, hairline rules.
+ * Yellow marks the next arrival and the primary action; status is a lamp
+ * plus a word, never colour alone.
+ */
 :root {
-  /* Surface hierarchy - Warm Parchment & Alabaster */
-  --bg-primary: #F5EBDD;        /* Warm Parchment Canvas */
-  --bg-secondary: #EFE4D4;      /* Warm Alabaster Container */
-  --bg-tertiary: #E4D6C4;       /* Surface 2 / Sub-container */
-  --bg-hover: #DFD0BD;          /* Interactive hover */
+  color-scheme: light;
+
+  /* Surface hierarchy - board ground, panels, track fill */
+  --bg-primary: #F3F3EF;        /* Board ground */
+  --bg-secondary: #FFFFFF;      /* Panel surface */
+  --bg-tertiary: #E4E4DE;       /* Track and header fill */
+  --bg-hover: #EAEAE4;          /* Interactive hover */
 
   /* Borders and hairlines */
-  --border-color: #DFD0BD;      /* 1px Hairline */
-  --border-light: #E4D6C4;      /* Hairline subtle */
-  --border-strong: #413333;     /* Hairline strong */
-  --border-focus: #315B8C;      /* Focus ring */
+  --border-color: #CFCFC8;      /* 1px hairline */
+  --border-light: #E2E2DC;      /* Row rule */
+  --border-strong: #111111;     /* Header rule and emphasis */
+  --border-focus: #111111;      /* Focus ring, 3:1 or better on every ground */
 
   /* Typography / Ink */
-  --text-primary: #413333;      /* Deep Roasted Espresso (10.2:1 AAA contrast) */
-  --text-secondary: #685959;    /* Ink Muted (5.6:1 AA contrast) */
-  --text-muted: #685959;        /* Ink Subtle / Placeholder (4.5:1 AA contrast) */
+  --text-primary: #111111;      /* Signage ink */
+  --text-secondary: #4A4A46;    /* Labels (8:1 on panel) */
+  --text-muted: #5E5E58;        /* Meta and placeholder (6:1 on panel) */
 
   /* Inverted Surfaces */
-  --inverse-canvas: #413333;
-  --inverse-surface: #4E3E3E;
-  --inverse-text: #F5EBDD;
-  --inverse-text-muted: #CBBFA9;
+  --inverse-canvas: #111111;
+  --inverse-surface: #232323;
+  --inverse-text: #FFFFFF;
+  --inverse-text-muted: #B8B8B2;
 
   /* Brand Accents */
-  --accent-primary: #315B8C;       /* Deep Ocean Steel Blue */
-  --accent-primary-hover: #264972;
-  --accent-primary-pressed: #1D3858;
-  --text-on-primary: #F5EBDD;
+  --accent-primary: #F5C400;       /* Signage yellow: next arrival, primary action */
+  --accent-primary-hover: #FFD433;
+  --accent-primary-pressed: #D9AE00;
+  --text-on-primary: #111111;
 
-  --accent-secondary: #F2765E;     /* Warm Terracotta Coral */
-  --accent-secondary-hover: #DF634A;
-  --accent-secondary-pressed: #C75139;
-  --text-on-secondary: #231818;
+  --accent-secondary: #111111;     /* Ink: the second half of the mark */
+  --accent-secondary-hover: #2B2B2B;
+  --accent-secondary-pressed: #000000;
+  --text-on-secondary: #FFFFFF;
 
   /* State Semantics */
-  --status-active: #315B8C;        /* Deep Steel Blue */
-  --status-complete: #2D7A54;      /* Earthy Green */
-  --status-paused: #D97706;        /* Warm Amber */
-  --status-error: #B83A2E;         /* Crimson Red */
+  --status-active: #111111;        /* Active word and progress fill */
+  --lamp-active: var(--status-active);          /* Active lamp */
+  --progress-fill: #111111;
+  --status-complete: #1E6B3E;      /* 6.6:1 on panel */
+  --status-paused: #8A5A00;        /* 5.8:1 on panel */
+  --status-error: #B42318;         /* 6.6:1 on panel */
+  --danger-fill: #B42318;          /* White text, 6.6:1 */
+  --danger-fill-hover: #91261D;
 
   /* Radii - Carbon Flat 0px Geometry */
   --radius-none: 0px;
@@ -74,7 +85,82 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Depth - flat by default. Scrims separate layers, not blur or halo. */
-  --scrim: rgba(65, 51, 51, 0.55);
+  --scrim: rgba(17, 17, 17, 0.55);
+}
+
+/* Night board: the same signage on black. Follows the system unless the page pins a theme. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg-primary: #0E0E0E;
+    --bg-secondary: #1A1A1A;
+    --bg-tertiary: #2A2A2A;
+    --bg-hover: #262626;
+    --border-color: #3A3A3A;
+    --border-light: #2A2A2A;
+    --border-strong: #F4F4F0;
+    --border-focus: #F5C400;
+    --text-primary: #F4F4F0;
+    --text-secondary: #C4C4BE;
+    --text-muted: #A8A8A2;
+    --inverse-canvas: #F4F4F0;
+    --inverse-surface: #E2E2DC;
+    --inverse-text: #111111;
+    --inverse-text-muted: #4A4A46;
+    --accent-primary: #F5C400;
+    --accent-primary-hover: #FFD433;
+    --accent-primary-pressed: #D9AE00;
+    --text-on-primary: #111111;
+    --accent-secondary: #F4F4F0;
+    --accent-secondary-hover: #FFFFFF;
+    --accent-secondary-pressed: #D9D9D2;
+    --text-on-secondary: #111111;
+    --status-active: #F4F4F0;
+    --lamp-active: var(--status-active);
+    --progress-fill: #F5C400;
+    --status-complete: #7BC596;
+    --status-paused: #FFA94D;
+    --status-error: #FF7B6E;
+    --danger-fill: #C2362B;
+    --danger-fill-hover: #A82B20;
+    --scrim: rgba(0, 0, 0, 0.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-primary: #0E0E0E;
+  --bg-secondary: #1A1A1A;
+  --bg-tertiary: #2A2A2A;
+  --bg-hover: #262626;
+  --border-color: #3A3A3A;
+  --border-light: #2A2A2A;
+  --border-strong: #F4F4F0;
+  --border-focus: #F5C400;
+  --text-primary: #F4F4F0;
+  --text-secondary: #C4C4BE;
+  --text-muted: #A8A8A2;
+  --inverse-canvas: #F4F4F0;
+  --inverse-surface: #E2E2DC;
+  --inverse-text: #111111;
+  --inverse-text-muted: #4A4A46;
+  --accent-primary: #F5C400;
+  --accent-primary-hover: #FFD433;
+  --accent-primary-pressed: #D9AE00;
+  --text-on-primary: #111111;
+  --accent-secondary: #F4F4F0;
+  --accent-secondary-hover: #FFFFFF;
+  --accent-secondary-pressed: #D9D9D2;
+  --text-on-secondary: #111111;
+  --status-active: #F4F4F0;
+  --lamp-active: var(--status-active);
+  --progress-fill: #F5C400;
+  --status-complete: #7BC596;
+  --status-paused: #FFA94D;
+  --status-error: #FF7B6E;
+  --danger-fill: #C2362B;
+  --danger-fill-hover: #A82B20;
+  --scrim: rgba(0, 0, 0, 0.6);
 }
 
 * {
@@ -86,7 +172,7 @@
 }
 
 ::selection {
-  background-color: rgba(49, 91, 140, 0.22);
+  background-color: rgba(245, 196, 0, 0.4);
   color: var(--text-primary);
 }
 
@@ -142,7 +228,7 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.5;
-  letter-spacing: 0.16px;
+  letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
   min-height: 100dvh;
@@ -201,7 +287,7 @@ body {
 }
 
 .brand-name {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 400;
   letter-spacing: -0.02em;
   color: var(--text-primary);
@@ -259,6 +345,7 @@ body {
   background-color: var(--status-paused);
 }
 
+
 /* Metrics Summary */
 .metrics-summary {
   display: flex;
@@ -308,6 +395,19 @@ body {
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
+}
+
+/* Theme button: one icon, the one for the current choice. */
+.theme-btn .icon-system,
+.theme-btn .icon-light,
+.theme-btn .icon-dark {
+  display: none;
+}
+
+.theme-btn[data-theme-choice="system"] .icon-system,
+.theme-btn[data-theme-choice="light"] .icon-light,
+.theme-btn[data-theme-choice="dark"] .icon-dark {
+  display: block;
 }
 
 /* Download limit (Quiet Mode) */
@@ -391,7 +491,7 @@ body {
   font-family: inherit;
   font-size: 0.875rem;
   font-weight: 500;
-  letter-spacing: 0.16px;
+  letter-spacing: 0;
   padding: 0 var(--space-4);
   min-height: 36px;
   border-radius: var(--radius-none);
@@ -446,14 +546,14 @@ body {
 }
 
 .btn-danger {
-  background-color: var(--status-error);
-  color: var(--bg-primary);
-  border-color: var(--status-error);
+  background-color: var(--danger-fill);
+  color: #FFFFFF;
+  border-color: var(--danger-fill);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: #91261D;
-  border-color: #91261D;
+  background-color: var(--danger-fill-hover);
+  border-color: var(--danger-fill-hover);
 }
 
 .btn-sm {
@@ -473,7 +573,7 @@ body {
   font-family: inherit;
   font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: 0.16px;
+  letter-spacing: 0;
   padding: 0 var(--space-3);
   min-height: 32px;
   border-radius: var(--radius-none);
@@ -524,7 +624,7 @@ body {
   font-family: inherit;
   font-size: 0.875rem;
   font-weight: 500;
-  letter-spacing: 0.16px;
+  letter-spacing: 0;
   padding: 0 var(--space-3);
   min-height: 44px;
   border-radius: var(--radius-none);
@@ -549,7 +649,7 @@ body {
 
 .tab-btn:hover {
   color: var(--text-primary);
-  background-color: rgba(65, 51, 51, 0.04);
+  background-color: rgba(17, 17, 17, 0.04);
 }
 
 .tab-btn.active {
@@ -703,6 +803,30 @@ body {
   flex-wrap: wrap;
 }
 
+/* The queue totals sit on the panel between the toolbar and the table, as one strip of three cells
+   divided by hairline rules. They take the panel's ground, so they read as part of the queue. */
+.queue-panel .metrics-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--border-color);
+}
+
+.queue-panel .metric-card {
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  background-color: transparent;
+  border: 0;
+  border-right: 1px solid var(--border-color);
+}
+
+.queue-panel .metric-card:last-child {
+  border-right: 0;
+}
+
+.queue-panel .metric-val {
+  font-size: 1.125rem;
+}
+
 /* Table */
 .table-container {
   width: 100%;
@@ -742,7 +866,7 @@ body {
 
 @media (hover: hover) {
   .transfer-table tbody tr:hover {
-    background-color: rgba(65, 51, 51, 0.03);
+    background-color: rgba(17, 17, 17, 0.03);
   }
 }
 
@@ -903,11 +1027,7 @@ body {
   color: var(--text-secondary);
 }
 
-/*
- * Status badge. Semantics stay green / amber / red / slate.
- * Fill is a solid mix of the status hue into parchment so contrast
- * against ink (#413333) clears 4.5:1 at 12px. The word carries meaning.
- */
+/* Status badge base. The Departures Board layer below sets the lamp and colour per status. */
 .badge {
   display: inline-block;
   padding: 2px 8px;
@@ -919,31 +1039,6 @@ body {
   color: var(--text-primary);
   border: 1px solid transparent;
   line-height: 1.4;
-}
-
-.badge-active {
-  background-color: color-mix(in srgb, var(--status-active) 22%, var(--bg-primary));
-  border-color: color-mix(in srgb, var(--status-active) 45%, var(--border-color));
-}
-
-.badge-complete {
-  background-color: color-mix(in srgb, var(--status-complete) 22%, var(--bg-primary));
-  border-color: color-mix(in srgb, var(--status-complete) 45%, var(--border-color));
-}
-
-.badge-paused {
-  background-color: color-mix(in srgb, var(--status-paused) 26%, var(--bg-primary));
-  border-color: color-mix(in srgb, var(--status-paused) 50%, var(--border-color));
-}
-
-.badge-error {
-  background-color: color-mix(in srgb, var(--status-error) 20%, var(--bg-primary));
-  border-color: color-mix(in srgb, var(--status-error) 45%, var(--border-color));
-}
-
-.badge-waiting {
-  background-color: color-mix(in srgb, var(--text-secondary) 14%, var(--bg-primary));
-  border-color: var(--border-color);
 }
 
 .action-btn-group {
@@ -1281,7 +1376,7 @@ form {
 }
 
 .drawer-header h2 {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 500;
   color: var(--text-primary);
   letter-spacing: 0;
@@ -1448,7 +1543,7 @@ form {
   padding: var(--space-3) var(--space-4);
   font-size: 0.875rem;
   line-height: 1.45;
-  animation: toast-in 0.18s ease-out;
+  animation: toast-in 0.26s cubic-bezier(0.16, 1, 0.3, 1);
   overflow-wrap: anywhere;
   pointer-events: auto;
 }
@@ -1482,7 +1577,7 @@ form {
 
 /* A row the daemon just popped the window for. */
 .row-flash td {
-  animation: row-flash 2.4s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: row-flash 1s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes row-flash {
@@ -1492,7 +1587,7 @@ form {
 
 @keyframes toast-in {
   from {
-    transform: translateY(8px);
+    transform: translateY(12px);
     opacity: 0;
   }
   to {
@@ -1516,20 +1611,6 @@ form {
 
   .brand {
     flex: 1 1 auto;
-  }
-
-  .metrics-summary {
-    order: 3;
-    width: 100%;
-  }
-
-  .metric-card {
-    flex: 1 1 0;
-    min-width: 0;
-    flex-direction: row;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-2);
   }
 
   .controls-bar {
@@ -1669,6 +1750,7 @@ form {
     letter-spacing: 0.08em;
     color: var(--text-secondary);
     font-family: var(--font-sans);
+    margin-right: var(--space-2);
   }
 
   .col-eta::before {
@@ -1725,14 +1807,22 @@ form {
   }
 
   #openAddModalBtn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     padding: 0;
   }
 
+  /* Stack each label over its figure so the value keeps its full width. */
   .metric-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
     padding: 5px 10px;
     min-width: 0;
+  }
+
+  .metric-val {
+    font-size: 0.875rem;
   }
 
   .queue-heading {
@@ -1745,7 +1835,7 @@ form {
 
   .btn-action-text {
     flex: 1 1 auto;
-    min-height: 36px;
+    min-height: 44px;
   }
 
   .search-key {
@@ -1861,7 +1951,7 @@ form {
   }
 
   .btn-action-text {
-    min-height: 40px;
+    min-height: 44px;
     padding: 0 14px;
   }
 
@@ -1909,6 +1999,313 @@ form {
   }
 }
 
+/* Departures Board: signage layer over the tokens above. */
+
+/* The frame takes the band's height, so a change of state can ease the box to its new size. */
+.next-arrival-frame {
+  display: flow-root;
+  overflow: hidden;
+}
+
+.next-arrival {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+  padding: var(--space-5);
+  background-color: var(--accent-primary);
+  color: var(--text-on-primary);
+  transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.next-arrival.is-idle {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.next-arrival-text {
+  min-width: 0;
+  flex: 1 1 320px;
+}
+
+.next-arrival-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.next-arrival-meta {
+  margin-top: var(--space-2);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.next-arrival-figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.next-arrival-value,
+.next-arrival-clock {
+  font-size: 6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* The time left as a clock: minutes and seconds, or hours and minutes from one hour. */
+.next-arrival-clock {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.next-arrival-colon {
+  padding: 0 0.04em;
+}
+
+/* The group only batches its children's updates; it takes no box of its own. */
+number-flow-group {
+  display: contents;
+}
+
+/* Bootup: the groups wait hidden until the arrangement starts. Without script they stay visible (see index.html). */
+html[data-boot="pending"] [data-boot-group] {
+  opacity: 0;
+}
+
+@media (max-width: 640px) {
+  .next-arrival-value,
+  .next-arrival-clock {
+    font-size: 4.5rem;
+  }
+}
+
+.tab-btn.active {
+  border-bottom-color: transparent;
+}
+
+.tab-btn.active .tab-count {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--text-on-primary);
+}
+
+.metric-val.active-speed,
+.col-speed.active {
+  color: var(--text-primary);
+}
+
+.conns-badge {
+  background: none;
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+}
+
+.transfer-table th {
+  background-color: transparent;
+  border-bottom: 2px solid var(--border-strong);
+}
+
+.transfer-table td {
+  padding: var(--space-4);
+  border-bottom-color: var(--border-light);
+}
+
+.file-name {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.progress-bar-bg {
+  height: 4px;
+}
+
+.progress-bar-fill {
+  background-color: var(--progress-fill);
+}
+
+.progress-bar-fill.complete {
+  background-color: var(--status-complete);
+}
+
+.progress-bar-fill.paused {
+  background-color: var(--status-paused);
+}
+
+.progress-bar-fill.error {
+  background-color: var(--status-error);
+}
+
+/* Status is a lamp and a word. The lamp takes the status colour; the word stays readable. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-none);
+  background: none;
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge::before {
+  content: "";
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  background-color: var(--lamp, currentColor);
+}
+
+.badge-active {
+  --lamp: var(--lamp-active);
+}
+
+.badge-complete {
+  --lamp: var(--status-complete);
+  color: var(--status-complete);
+}
+
+.badge-paused {
+  --lamp: var(--status-paused);
+  color: var(--status-paused);
+}
+
+.badge-error {
+  --lamp: var(--status-error);
+  color: var(--status-error);
+}
+
+.badge-waiting {
+  --lamp: var(--text-muted);
+  color: var(--text-secondary);
+}
+
+/* Motion. The next arrival is the one authored moment; the rest confirms an action or keeps continuity. */
+
+.tab-filters {
+  position: relative;
+}
+
+/* One underline slides between tabs instead of each tab drawing its own. */
+.tab-indicator {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 2px;
+  background-color: var(--text-primary);
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+/* Press feedback is immediate. The scale is the only spatial move a button makes. */
+.btn,
+.btn-icon-only,
+.btn-action-text {
+  transition-property: background-color, border-color, color, transform;
+  transition-duration: 150ms, 150ms, 150ms, 100ms;
+  transition-timing-function: ease-out;
+}
+
+.btn:not(:disabled):active,
+.btn-icon-only:not(:disabled):active,
+.btn-action-text:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes dialog-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+
+@keyframes drawer-in {
+  from { transform: translateX(100%); }
+  to { transform: none; }
+}
+
+@keyframes drawer-out {
+  from { transform: none; }
+  to { transform: translateX(100%); }
+}
+
+.modal-backdrop,
+.drawer-backdrop {
+  animation: backdrop-in 160ms ease-out;
+}
+
+.modal-box {
+  animation: dialog-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.drawer-panel {
+  animation: drawer-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Exits run before the layer is hidden, and they mirror the entrance. */
+/* Exits use the inverse of the enter curve, so they retrace the entrance's path and easing. */
+.modal-backdrop.is-leaving {
+  animation: backdrop-out 160ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+.modal-backdrop.is-leaving .modal-box {
+  animation: dialog-out 160ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+.drawer-backdrop.is-leaving {
+  animation: backdrop-out 220ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+.drawer-backdrop.is-leaving .drawer-panel {
+  animation: drawer-out 220ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+/* A toast leaves down the same 12px it rose, on the inverse curve. */
+@keyframes toast-out {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(12px); }
+}
+
+.toast.is-leaving {
+  animation: toast-out 160ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+/* A new queue line fades in rather than appearing in one frame. */
+@keyframes row-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.row-enter {
+  animation: row-enter 260ms ease-out;
+}
+
 /* Intentional Reduced Motion Alternative */
 @media (prefers-reduced-motion: reduce) {
   .progress-bar-fill {
@@ -1930,5 +2327,30 @@ form {
   .btn-icon-only,
   .close-btn {
     transition: none;
+  }
+
+  .btn:not(:disabled):active,
+  .btn-icon-only:not(:disabled):active,
+  .btn-action-text:not(:disabled):active {
+    transform: none;
+  }
+
+  /* Dialogs and drawers fade without travelling. */
+  .modal-box,
+  .drawer-panel {
+    animation-name: backdrop-in;
+  }
+
+  .modal-backdrop.is-leaving .modal-box,
+  .drawer-backdrop.is-leaving .drawer-panel {
+    animation-name: backdrop-out;
+  }
+
+  .toast {
+    animation: row-enter 200ms ease-out;
+  }
+
+  .toast.is-leaving {
+    animation-name: backdrop-out;
   }
 }

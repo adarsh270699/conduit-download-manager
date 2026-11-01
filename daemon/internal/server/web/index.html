@@ -1,25 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-boot="pending">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="color-scheme" content="light">
-  <meta name="theme-color" content="#F5EBDD">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#F3F3EF">
+  <link id="appIcon" rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <script>
+    // Paint the saved colour scheme and tab icon before the first frame. The daemon's setting replaces them once loaded.
+    try {
+      var savedTheme = localStorage.getItem('conduit-theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        document.documentElement.dataset.theme = savedTheme;
+        document.getElementById('appIcon').href = '/favicon-' + savedTheme + '.svg';
+      }
+    } catch (e) {
+      // Storage may be refused; the page then follows the system.
+    }
+  </script>
   <title>Conduit - Download Manager</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="alternate icon" href="/favicon.ico">
   <link rel="preload" href="/fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/pages.css">
+  <!-- Without script the bootup never runs, so the groups stay visible. -->
+  <noscript><style>html[data-boot] [data-boot-group] { opacity: 1; }</style></noscript>
 </head>
 <body>
   <div class="app-layout">
     <!-- Top Navigation Bar -->
     <header class="topbar">
-      <div class="brand">
+      <div class="brand" data-boot-group>
         <svg class="brand-icon" viewBox="0 0 2048 2048" fill="none" aria-hidden="true">
-          <path fill="var(--accent-primary, #315B8C)" d="M 654 408 V 840 C 654 986, 894 1134, 894 1280 V 1408 H 764 L 1024 1668 V 1280 C 1024 1160, 1175 1060, 1180 980 C 1185 930, 1190 890, 1190 840 V 408 H 1060 V 840 C 1060 920, 1024 970, 1024 1020 C 1024 970, 988 920, 988 840 V 408 H 858 V 840 C 858 890, 863 930, 868 1000 C 868 930, 784 890, 784 840 V 408 H 654 Z" />
-          <path fill="var(--accent-secondary, #F2765E)" d="M 1264 408 H 1394 V 840 C 1394 986, 1154 1134, 1154 1280 V 1408 H 1284 L 1024 1668 V 1280 C 1024 1160, 1175 1060, 1180 980 C 1185 930, 1264 890, 1264 840 V 408 H 1264 Z" />
+          <path fill="var(--accent-primary)" d="M 654 408 V 840 C 654 986, 894 1134, 894 1280 V 1408 H 764 L 1024 1668 V 1280 C 1024 1160, 1175 1060, 1180 980 C 1185 930, 1190 890, 1190 840 V 408 H 1060 V 840 C 1060 920, 1024 970, 1024 1020 C 1024 970, 988 920, 988 840 V 408 H 858 V 840 C 858 890, 863 930, 868 1000 C 868 930, 784 890, 784 840 V 408 H 654 Z" />
+          <path fill="var(--accent-secondary)" d="M 1264 408 H 1394 V 840 C 1394 986, 1154 1134, 1154 1280 V 1408 H 1284 L 1024 1668 V 1280 C 1024 1160, 1175 1060, 1180 980 C 1185 930, 1264 890, 1264 840 V 408 H 1264 Z" />
         </svg>
         <span class="brand-name">Conduit</span>
         <div id="connectionStatus" class="status-indicator reconnecting">
@@ -33,24 +47,8 @@
         </script>
       </div>
 
-      <!-- Queue Metrics -->
-      <div class="metrics-summary" aria-label="Queue totals">
-        <div class="metric-card">
-          <span class="metric-label">Active</span>
-          <span id="metricActiveCount" class="metric-val">0</span>
-        </div>
-        <div class="metric-card">
-          <span class="metric-label">Speed</span>
-          <span id="metricTotalSpeed" class="metric-val">0 B/s</span>
-        </div>
-        <div class="metric-card">
-          <span class="metric-label">Completed</span>
-          <span id="metricCompleteCount" class="metric-val">0</span>
-        </div>
-      </div>
-
       <!-- Header Actions -->
-      <div class="header-actions">
+      <div class="header-actions" data-boot-group>
         <!-- Download limit (Quiet Mode) -->
         <div class="speed-limiter-wrap" title="Download limit">
           <label class="speed-limiter-label" for="speedLimiterSelect">Limit</label>
@@ -69,6 +67,21 @@
           </svg>
           <span class="btn-label">Add Download</span>
         </button>
+        <!-- Colour scheme: follows the system until pinned. The choice is saved for every surface. -->
+        <button id="themeBtn" class="btn btn-secondary btn-square theme-btn" type="button" data-theme-choice="system" title="Theme: follows the system. Select to change" aria-label="Theme: follows the system. Select to change">
+          <svg class="btn-icon icon-system" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="2" y="3" width="20" height="14"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          <svg class="btn-icon icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+          </svg>
+          <svg class="btn-icon icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
         <button id="openSettingsBtn" class="btn btn-secondary btn-square" title="Settings" aria-label="Settings">
           <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="12" cy="12" r="3"></circle>
@@ -79,13 +92,14 @@
     </header>
 
     <!-- Controls Bar: filters and search -->
-    <div class="controls-bar">
+    <div class="controls-bar" data-boot-group>
       <div class="tab-filters" role="tablist" aria-label="Filter downloads by status">
-        <button class="tab-btn active" role="tab" aria-selected="true" data-filter="all">All <span class="tab-count" id="countAll">0</span></button>
-        <button class="tab-btn" role="tab" aria-selected="false" data-filter="active">Active <span class="tab-count" id="countActive">0</span></button>
-        <button class="tab-btn" role="tab" aria-selected="false" data-filter="complete">Completed <span class="tab-count" id="countComplete">0</span></button>
-        <button class="tab-btn" role="tab" aria-selected="false" data-filter="paused">Paused <span class="tab-count" id="countPaused">0</span></button>
-        <button class="tab-btn" role="tab" aria-selected="false" data-filter="error">Failed <span class="tab-count" id="countError">0</span></button>
+        <button class="tab-btn active" role="tab" aria-controls="transferPanel" aria-selected="true" data-filter="all">All <span class="tab-count" id="countAll">0</span></button>
+        <button class="tab-btn" role="tab" aria-controls="transferPanel" aria-selected="false" data-filter="active">Active <span class="tab-count" id="countActive">0</span></button>
+        <button class="tab-btn" role="tab" aria-controls="transferPanel" aria-selected="false" data-filter="complete">Completed <span class="tab-count" id="countComplete">0</span></button>
+        <button class="tab-btn" role="tab" aria-controls="transferPanel" aria-selected="false" data-filter="paused">Paused <span class="tab-count" id="countPaused">0</span></button>
+        <button class="tab-btn" role="tab" aria-controls="transferPanel" aria-selected="false" data-filter="error">Failed <span class="tab-count" id="countError">0</span></button>
+        <span class="tab-indicator" aria-hidden="true"></span>
       </div>
       <div class="search-box">
         <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -99,14 +113,35 @@
 
     <!-- Main Content Area: Transfers Table -->
     <main class="main-content" id="mainContent">
+      <!-- Batches the layout work of every NumberFlow in the page into one pass per update. -->
+      <number-flow-group>
       <!-- Connection Problem Banner -->
       <div id="connectionBanner" class="conn-banner hidden" role="status">
         <span class="conn-banner-text">Conduit lost the download engine. This list is not updating. Retrying automatically.</span>
         <button id="retryConnectionBtn" class="btn btn-secondary btn-sm" type="button">Retry now</button>
       </div>
 
+      <!-- Next arrival: the active download with the least time left -->
+      <div class="next-arrival-frame" id="nextFrame">
+      <section class="next-arrival is-idle" id="nextArrival" aria-labelledby="nextName" data-boot-group>
+        <div class="next-arrival-text">
+          <p id="nextName" class="next-arrival-name">Nothing is downloading</p>
+          <p id="nextMeta" class="next-arrival-meta">Add a link to start.</p>
+        </div>
+        <p class="next-arrival-figure">
+          <!-- Screen readers get the time as one sentence; the visual figure is hidden from them. -->
+          <span id="nextTimeLabel" class="sr-only">Time left: nothing is downloading</span>
+          <span id="nextValue" class="next-arrival-value" aria-hidden="true">--</span>
+          <span id="nextClock" class="next-arrival-clock hidden" aria-hidden="true">
+            <span id="nextHoursPart" class="hidden"><number-flow id="nextHours">0</number-flow><span class="next-arrival-colon">:</span></span>
+            <number-flow id="nextMinutes">0</number-flow><span class="next-arrival-colon">:</span><number-flow id="nextSeconds">00</number-flow>
+          </span>
+        </p>
+      </section>
+      </div>
+
       <section class="queue-panel" aria-labelledby="queueTitle">
-        <div class="queue-toolbar">
+        <div class="queue-toolbar" data-boot-group>
           <div class="queue-heading">
             <h1 id="queueTitle" class="queue-title">Transfers</h1>
             <p id="queueSummary" class="queue-summary">Loading...</p>
@@ -118,7 +153,23 @@
           </div>
         </div>
 
-        <div class="table-container">
+        <!-- Queue totals: one strip between the toolbar and the table -->
+        <div class="metrics-summary" role="group" aria-label="Queue totals" data-boot-group>
+          <div class="metric-card">
+            <span class="metric-label">Active</span>
+            <number-flow id="metricActiveCount" class="metric-val">0</number-flow>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Speed</span>
+            <span id="metricTotalSpeed" class="metric-val"><span id="metricSpeedText" class="sr-only">0 B/s</span><span aria-hidden="true"><number-flow id="metricSpeedNumber">0</number-flow> <span id="metricSpeedUnit">B/s</span></span></span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-label">Completed</span>
+            <number-flow id="metricCompleteCount" class="metric-val">0</number-flow>
+          </div>
+        </div>
+
+        <div class="table-container" id="transferPanel" role="tabpanel" aria-label="Downloads">
           <table class="transfer-table hidden" id="transferTable" aria-label="Download transfers">
             <thead>
               <tr>
@@ -151,6 +202,7 @@
           </div>
         </div>
       </section>
+      </number-flow-group>
     </main>
   </div>
 
@@ -431,6 +483,8 @@
   <!-- Floating Toast Notifications -->
   <div id="toastContainer" class="toast-container" role="status" aria-live="polite"></div>
 
+  <script type="module" src="/vendor/number-flow/number-flow.js"></script>
+  <script src="/motion.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>
