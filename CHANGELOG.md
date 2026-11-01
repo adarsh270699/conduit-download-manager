@@ -4,6 +4,8 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-01
+
 ### Added
 
 - A colour scheme setting, `theme`, with `system`, `light` and `dark`. The dashboard, the extension popup and the offline page each have a button that cycles through the three, and every surface follows the saved choice. The daemon keeps the setting. The extension keeps a copy, so its pages paint correctly while the daemon is off, and a change made while the daemon is off is sent when it returns.
@@ -64,7 +66,8 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 - Download URLs are limited to HTTP, HTTPS, and FTP.
 - The internal aria2 RPC port uses a per-launch random secret and checks engine ownership before use.
 
-[Unreleased]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/adarsh270699/conduit-download-manager/releases/tag/v1.0.0
