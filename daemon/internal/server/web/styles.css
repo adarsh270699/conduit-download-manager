@@ -398,16 +398,32 @@ body {
 }
 
 /* Theme button: one icon, the one for the current choice. */
-.theme-btn .icon-system,
-.theme-btn .icon-light,
-.theme-btn .icon-dark {
-  display: none;
+/* The three icons stack in one place, so the choice cross-fades rather than swapping. */
+.theme-btn {
+  position: relative;
+}
+
+.theme-btn .btn-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.8);
+  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .theme-btn[data-theme-choice="system"] .icon-system,
 .theme-btn[data-theme-choice="light"] .icon-light,
 .theme-btn[data-theme-choice="dark"] .icon-dark {
-  display: block;
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* A theme change cross-fades the whole page over the same time as the icon. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 160ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Download limit (Quiet Mode) */
@@ -729,6 +745,11 @@ body {
 }
 
 /* Connection Banner */
+/* The frame clips the banner as it slides, and takes its height, so the queue below glides rather than jumping. */
+.conn-frame {
+  overflow: hidden;
+}
+
 .conn-banner {
   display: flex;
   align-items: center;
@@ -740,6 +761,16 @@ body {
   border: 1px solid var(--status-error);
   color: var(--text-primary);
   font-size: 0.875rem;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 160ms cubic-bezier(0.7, 0, 0.84, 0), transform 160ms cubic-bezier(0.7, 0, 0.84, 0);
+}
+
+/* It rises in on the enter curve, and leaves up the same 8px on the exit curve. */
+.conn-banner.is-shown {
+  opacity: 1;
+  transform: none;
+  transition: opacity 260ms cubic-bezier(0.16, 1, 0.3, 1), transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .conn-banner-text {
@@ -862,6 +893,18 @@ body {
 
 .transfer-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+/* A confirmed removal fades its line out while the request runs. It is opacity only, so a refused removal
+   fades back from where it is. The exit curve is the inverse of the enter curve. */
+.transfer-table tbody tr {
+  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.transfer-table tbody tr.row-leaving {
+  opacity: 0;
+  pointer-events: none;
+  transition-timing-function: cubic-bezier(0.7, 0, 0.84, 0);
 }
 
 @media (hover: hover) {
@@ -1095,6 +1138,11 @@ body {
 }
 
 /* Empty State */
+/* The frame clips the empty state while its height eases to the next state's height. */
+.empty-frame {
+  overflow: hidden;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -1236,7 +1284,7 @@ body {
   color: var(--text-secondary);
   cursor: pointer;
   flex-shrink: 0;
-  transition: color 0.15s ease-out;
+  transition: color 0.15s ease-out, transform 100ms ease-out;
 }
 
 .close-btn svg {
@@ -1246,6 +1294,10 @@ body {
 
 .close-btn:hover {
   color: var(--text-primary);
+}
+
+.close-btn:not(:disabled):active {
+  transform: scale(0.97);
 }
 
 form {
@@ -2331,7 +2383,8 @@ html[data-boot="pending"] [data-boot-group] {
 
   .btn:not(:disabled):active,
   .btn-icon-only:not(:disabled):active,
-  .btn-action-text:not(:disabled):active {
+  .btn-action-text:not(:disabled):active,
+  .close-btn:not(:disabled):active {
     transform: none;
   }
 
@@ -2352,5 +2405,14 @@ html[data-boot="pending"] [data-boot-group] {
 
   .toast.is-leaving {
     animation-name: backdrop-out;
+  }
+
+  /* The banner and the theme icon fade without travelling. */
+  .conn-banner {
+    transform: none;
+  }
+
+  .theme-btn .btn-icon {
+    transform: translate(-50%, -50%);
   }
 }

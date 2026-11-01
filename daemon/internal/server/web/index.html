@@ -116,9 +116,12 @@
       <!-- Batches the layout work of every NumberFlow in the page into one pass per update. -->
       <number-flow-group>
       <!-- Connection Problem Banner -->
-      <div id="connectionBanner" class="conn-banner hidden" role="status">
-        <span class="conn-banner-text">Conduit lost the download engine. This list is not updating. Retrying automatically.</span>
-        <button id="retryConnectionBtn" class="btn btn-secondary btn-sm" type="button">Retry now</button>
+      <!-- The frame takes the banner's height, so the queue below glides as the banner opens and closes. -->
+      <div id="connectionFrame" class="conn-frame hidden">
+        <div id="connectionBanner" class="conn-banner" role="status">
+          <span class="conn-banner-text">Conduit lost the download engine. This list is not updating. Retrying automatically.</span>
+          <button id="retryConnectionBtn" class="btn btn-secondary btn-sm" type="button">Retry now</button>
+        </div>
       </div>
 
       <!-- Next arrival: the active download with the least time left -->
@@ -187,17 +190,21 @@
           </table>
 
           <!-- Empty State Message -->
-          <div id="emptyState" class="empty-state">
-            <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-              <path d="M3 13h5l2 3h4l2-3h5"></path>
-              <path d="M5 5h14l2 8v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4z"></path>
-            </svg>
-            <h2 id="emptyTitle">Loading downloads</h2>
-            <p id="emptyDesc">Reading the queue from Conduit.</p>
-            <div class="empty-actions">
-              <button id="emptyAddBtn" class="btn btn-primary hidden" type="button">Add a download</button>
-              <button id="emptyExtensionLink" class="btn btn-secondary hidden" type="button">Add the browser extension</button>
-              <button id="emptyActionBtn" class="btn btn-secondary hidden" type="button">Clear filters</button>
+          <div id="emptyFrame" class="empty-frame">
+            <div id="emptyState" class="empty-state">
+              <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M3 13h5l2 3h4l2-3h5"></path>
+                <path d="M5 5h14l2 8v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4z"></path>
+              </svg>
+              <div class="empty-copy" aria-live="polite">
+                <h2 id="emptyTitle">Loading downloads</h2>
+                <p id="emptyDesc">Reading the queue from Conduit.</p>
+              </div>
+              <div class="empty-actions">
+                <button id="emptyAddBtn" class="btn btn-primary hidden" type="button">Add a download</button>
+                <button id="emptyExtensionLink" class="btn btn-secondary hidden" type="button">Add the browser extension</button>
+                <button id="emptyActionBtn" class="btn btn-secondary hidden" type="button">Clear filters</button>
+              </div>
             </div>
           </div>
         </div>

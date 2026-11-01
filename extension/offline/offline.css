@@ -487,17 +487,34 @@ body {
   background: var(--hover);
 }
 
-/* One icon shows: the one for the current choice. */
+/* The three icons stack in one place, so the choice cross-fades rather than swapping. */
+.theme-btn {
+  position: relative;
+}
+
 .theme-btn svg {
-  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 14px;
   height: 14px;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.8);
+  transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1), transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .theme-btn[data-theme-choice="system"] .icon-system,
 .theme-btn[data-theme-choice="light"] .icon-light,
 .theme-btn[data-theme-choice="dark"] .icon-dark {
-  display: block;
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* A colour-scheme change cross-fades the page, as the dashboard does. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 160ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Reduced motion: the rings rest as static hairlines, and the button changes colour without a press. */
@@ -512,6 +529,11 @@ body {
 
   .btn:active:not(:disabled) {
     transform: none;
+  }
+
+  /* The icons keep their fade under reduced motion and lose only the zoom. */
+  .theme-btn svg {
+    transform: translate(-50%, -50%);
   }
 }
 

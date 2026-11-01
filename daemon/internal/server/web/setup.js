@@ -5,6 +5,7 @@
   const shell = params.get('shell') === 'app';
   const folderStep = document.getElementById('stepFolder');
   const extensionStep = document.getElementById('stepExtension');
+  const extensionTitle = document.getElementById('extensionTitle');
   const folderForm = document.getElementById('folderForm');
   const downloadDir = document.getElementById('downloadDir');
   const openGuideBtn = document.getElementById('openGuideBtn');
@@ -47,9 +48,15 @@
     window.location.replace(queueURL());
   }
 
+  // The folder step leaves upward. The extension step rises into its place once the first has gone.
   function showExtensionStep() {
-    folderStep.classList.add('hidden');
-    extensionStep.classList.remove('hidden');
+    folderStep.inert = true;
+    ConduitMotion.leave(folderStep, () => {
+      extensionStep.classList.remove('hidden');
+      ConduitMotion.enter(extensionStep, 12);
+      // The folder step held focus and has just hidden. The new step's heading takes it, so keyboard users keep their place.
+      extensionTitle.focus({ preventScroll: true });
+    });
   }
 
   folderForm.addEventListener('submit', async (event) => {

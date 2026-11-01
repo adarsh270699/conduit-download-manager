@@ -43,6 +43,7 @@
     tabIndicator: document.querySelector('.tab-indicator'),
     transferTableBody: document.getElementById('transferTableBody'),
     emptyState: document.getElementById('emptyState'),
+    emptyFrame: document.getElementById('emptyFrame'),
     emptyTitle: document.getElementById('emptyTitle'),
     emptyDesc: document.getElementById('emptyDesc'),
     emptyActionBtn: document.getElementById('emptyActionBtn'),
@@ -67,6 +68,7 @@
     addDestination: document.getElementById('addDestination'),
     // Connection Banner
     connectionBanner: document.getElementById('connectionBanner'),
+    connectionFrame: document.getElementById('connectionFrame'),
     retryConnectionBtn: document.getElementById('retryConnectionBtn'),
     appLayout: document.querySelector('.app-layout'),
     // Speed Limiter Quick Selector
@@ -322,6 +324,10 @@
     Array.from(elements.transferTableBody.children).forEach((row, i) => {
       ConduitMotion.enter(row, 12, quiet ? 0 : rowStart + Math.min(i, BOOT_ROW_LIMIT) * BOOT_ROW_STEP);
     });
+    // A first-run empty queue arrives where its rows would have been, after the chrome.
+    if (state.loaded && state.downloads.length === 0 && elements.emptyState && !elements.emptyState.classList.contains('hidden')) {
+      ConduitMotion.enter(elements.emptyState, 12, quiet ? 0 : rowStart);
+    }
     document.documentElement.removeAttribute('data-boot');
   }
 
@@ -538,9 +544,29 @@
     const textEl = elements.connectionStatus.querySelector('.status-text');
     if (textEl) textEl.textContent = text;
 
-    if (elements.connectionBanner) {
-      const isDown = status === 'offline';
-      elements.connectionBanner.classList.toggle('hidden', !isDown);
+    setConnectionBanner(status === 'offline');
+  }
+
+  // The frame takes the banner's height, so the queue below glides as the banner opens and closes.
+  // Opening waits for a reflow, so the banner fades in from its hidden state rather than appearing.
+  function setConnectionBanner(show) {
+    const frame = elements.connectionFrame;
+    const banner = elements.connectionBanner;
+    if (!frame || !banner || banner.classList.contains('is-shown') === show) return;
+    const from = frame.getBoundingClientRect().height;
+    if (show) {
+      frame.classList.remove('hidden');
+      void banner.offsetWidth;
+      banner.classList.add('is-shown');
+      banner.inert = false;
+      ConduitMotion.resize(frame, from);
+    } else {
+      banner.classList.remove('is-shown');
+      // While it closes, the banner's Retry button must not take focus or clicks.
+      banner.inert = true;
+      ConduitMotion.collapse(frame, () => {
+        if (!banner.classList.contains('is-shown')) frame.classList.add('hidden');
+      });
     }
   }
 
@@ -859,25 +885,114 @@
     animateNextArrival(next.gid);
   }
 
+  // Text that changes with a lifecycle state fades out, swaps, and fades back in. Writing the same text does
+  // nothing, so a repeated render never replays the fade.
+  const TEXT_FADE_OUT = { duration: 100, easing: 'cubic-bezier(0.7, 0, 0.84, 0)' };
+  const TEXT_FADE_IN = { duration: 180, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' };
+
+  function setFadedText(el, text) {
+    if (el._text === undefined) el._text = el.textContent;
+    if (el._text === text) return;
+    el._text = text;
+    if (el._fade) return; // A fade is running. It swaps in the latest text when it finishes.
+    el._fade = el.animate([{ opacity: 1 }, { opacity: 0 }], TEXT_FADE_OUT).finished.then(() => {
+      el.textContent = el._text;
+      el._fade = null;
+      el.animate([{ opacity: 0 }, { opacity: 1 }], TEXT_FADE_IN);
+    });
+  }
+
+  // Text that changes on every keystroke or tab press is written at once.
+  function setPlainText(el, text) {
+    el._text = text;
+    if (el.textContent !== text) el.textContent = text;
+  }
+
+  // Stops the fade that holds the empty text at zero opacity, and drops any view still waiting to apply.
+  function stopEmptyFades() {
+    const frame = elements.emptyFrame;
+    frame._view = null;
+    if (frame._fades) frame._fades.forEach(fade => fade.cancel());
+    frame._fades = null;
+  }
+
+  function applyEmptyView(view) {
+    if (elements.emptyTitle) setPlainText(elements.emptyTitle, view.title);
+    if (elements.emptyDesc) setPlainText(elements.emptyDesc, view.desc);
+    if (elements.emptyAddBtn) elements.emptyAddBtn.classList.toggle('hidden', !view.add);
+    if (elements.emptyExtensionLink) elements.emptyExtensionLink.classList.toggle('hidden', !view.extension);
+    if (elements.emptyActionBtn) elements.emptyActionBtn.classList.toggle('hidden', !view.action);
+  }
+
+  // Applies the newest view at the swap. The box's height is measured before the change and eased after it,
+  // so the target is the height of the new content, not the old text.
+  function swapEmptyView(fadeIn) {
+    const frame = elements.emptyFrame;
+    const view = frame._view;
+    stopEmptyFades();
+    const before = frame.getBoundingClientRect().height;
+    applyEmptyView(view);
+    ConduitMotion.resize(frame, before);
+    if (fadeIn) {
+      [elements.emptyTitle, elements.emptyDesc].forEach(el => {
+        if (el) el.animate([{ opacity: 0 }, { opacity: 1 }], TEXT_FADE_IN);
+      });
+    }
+  }
+
+  // Lifecycle states fade their text out, swap the view, and fade the text back in. The box eases to the height of
+  // the new view, as the next arrival band does. Search and tab empties change on every keystroke, so they apply
+  // at once.
+  function showEmptyState(lifecycle, view) {
+    const frame = elements.emptyFrame;
+    const box = elements.emptyState;
+    if (!lifecycle) {
+      stopEmptyFades();
+      applyEmptyView(view);
+      box.classList.remove('hidden');
+      ConduitMotion.cancel(frame);
+      return;
+    }
+    if (box.classList.contains('hidden')) {
+      // Coming from the list, the box opens on the new state and grows from nothing.
+      stopEmptyFades();
+      applyEmptyView(view);
+      box.classList.remove('hidden');
+      ConduitMotion.resize(frame, 0);
+      return;
+    }
+    frame._view = view;
+    if (frame._fading) return; // The fade in progress swaps in the newest view when it finishes.
+    const textChanges = (elements.emptyTitle && elements.emptyTitle.textContent !== view.title)
+      || (elements.emptyDesc && elements.emptyDesc.textContent !== view.desc);
+    if (!textChanges) {
+      swapEmptyView(false);
+      return;
+    }
+    frame._fading = true;
+    frame._fades = [elements.emptyTitle, elements.emptyDesc]
+      .filter(Boolean)
+      .map(el => el.animate([{ opacity: 1 }, { opacity: 0 }], { ...TEXT_FADE_OUT, fill: 'forwards' }));
+    Promise.all(frame._fades.map(fade => fade.finished.catch(() => {}))).then(() => {
+      frame._fading = false;
+      if (frame._view) swapEmptyView(true);
+    });
+  }
+
   function renderTable() {
     if (!state.loaded) {
       elements.transferTableBody.innerHTML = '';
       renderedRows.clear();
       if (elements.transferTable) elements.transferTable.classList.add('hidden');
-      if (elements.emptyState) {
-        elements.emptyState.classList.remove('hidden');
-        if (elements.emptyTitle) {
-          elements.emptyTitle.textContent = state.loadFailed ? 'Waiting for Conduit' : 'Loading downloads';
-        }
-        if (elements.emptyDesc) {
-          elements.emptyDesc.textContent = state.loadFailed
-            ? 'The queue is not available now. Conduit retries automatically.'
-            : 'Reading the queue from Conduit.';
-        }
-        if (elements.emptyAddBtn) elements.emptyAddBtn.classList.add('hidden');
-        if (elements.emptyExtensionLink) elements.emptyExtensionLink.classList.add('hidden');
-        if (elements.emptyActionBtn) elements.emptyActionBtn.classList.add('hidden');
-      }
+      showEmptyState(true, {
+        title: state.loadFailed ? 'Waiting for Conduit' : 'Loading downloads',
+        desc: state.loadFailed
+          ? 'The queue is not available now. Conduit retries automatically.'
+          : 'Reading the queue from Conduit.',
+        add: false,
+        extension: false,
+        action: false,
+      });
       updateQueueSummary(0);
       return;
     }
@@ -904,31 +1019,30 @@
       elements.transferTableBody.innerHTML = '';
       renderedRows.clear();
       if (elements.transferTable) elements.transferTable.classList.add('hidden');
-      if (elements.emptyState) {
-        elements.emptyState.classList.remove('hidden');
-        const noDownloads = state.downloads.length === 0;
-        const hasQuery = query.length > 0;
-        const hasFilter = state.filter !== 'all';
-        if (elements.emptyTitle) {
-          elements.emptyTitle.textContent = noDownloads
-            ? 'No downloads yet'
-            : 'No matching downloads';
-        }
-        if (elements.emptyDesc) {
-          elements.emptyDesc.textContent = noDownloads
-            ? 'Add a link to start. Finished files go to your download folder.'
-            : hasQuery
-              ? `No file name or folder contains "${state.search.trim()}".`
-              : `There are no ${filterLabel(state.filter)} downloads.`;
-        }
-        if (elements.emptyAddBtn) elements.emptyAddBtn.classList.toggle('hidden', !noDownloads);
-        if (elements.emptyExtensionLink) elements.emptyExtensionLink.classList.toggle('hidden', !noDownloads);
-        if (elements.emptyActionBtn) elements.emptyActionBtn.classList.toggle('hidden', noDownloads || (!hasQuery && !hasFilter));
-      }
+      const noDownloads = state.downloads.length === 0;
+      const hasQuery = query.length > 0;
+      const hasFilter = state.filter !== 'all';
+      const wasHidden = elements.emptyState.classList.contains('hidden');
+      showEmptyState(noDownloads, {
+        title: noDownloads ? 'No downloads yet' : 'No matching downloads',
+        desc: noDownloads
+          ? 'Add a link to start. Finished files go to your download folder.'
+          : hasQuery
+            ? `No file name or folder contains "${state.search.trim()}".`
+            : `There are no ${filterLabel(state.filter)} downloads.`,
+        add: noDownloads,
+        extension: noDownloads,
+        action: !noDownloads && (hasQuery || hasFilter),
+      });
+      // The first-time message rises in once the page has booted. Search and tab empties change on every
+      // keystroke or tab press, so they stay still.
+      if (noDownloads && wasHidden && booted) ConduitMotion.enter(elements.emptyState, 12);
       return;
     }
 
     if (elements.emptyState) elements.emptyState.classList.add('hidden');
+    stopEmptyFades();
+    ConduitMotion.cancel(elements.emptyFrame);
     if (elements.transferTable) elements.transferTable.classList.remove('hidden');
 
     // A reorder moves rows. Record where each row is now, then let it glide to its new place.
@@ -1141,9 +1255,9 @@
     } else {
       text = 'No downloads';
     }
-    if (elements.queueSummary.textContent !== text) {
-      elements.queueSummary.textContent = text;
-    }
+    // The summary's lifecycle words fade. Its counts change on every search or tab press, so those stay instant.
+    const lifecycle = !state.loaded || total === 0;
+    (lifecycle ? setFadedText : setPlainText)(elements.queueSummary, text);
     // Batch controls act on existing downloads only. Hide them on first run.
     if (elements.batchActions) {
       elements.batchActions.classList.toggle('hidden', total === 0);
@@ -1311,8 +1425,34 @@
     }
   }
 
+  // A confirmed removal fades its line out while the request runs. A refused one fades back in. A fading line is
+  // inert, so keyboard focus cannot start a second action on it.
+  const ROW_LEAVE_MS = 160;
+
+  function fadeRowsOut(gids) {
+    gids.forEach(gid => {
+      const row = renderedRows.get(gid);
+      if (row) {
+        row.classList.add('row-leaving');
+        row.inert = true;
+      }
+    });
+    return new Promise(resolve => setTimeout(resolve, ROW_LEAVE_MS));
+  }
+
+  function restoreRows(gids) {
+    gids.forEach(gid => {
+      const row = renderedRows.get(gid);
+      if (row) {
+        row.classList.remove('row-leaving');
+        row.inert = false;
+      }
+    });
+  }
+
   async function performDeleteAction(gid, deleteFile, triggerBtn) {
     if (triggerBtn) triggerBtn.disabled = true;
+    const leaving = fadeRowsOut([gid]);
     try {
       const res = await fetch(`/api/downloads/${encodeURIComponent(gid)}/action`, {
         method: 'POST',
@@ -1320,6 +1460,7 @@
         body: JSON.stringify({ action: 'remove', deleteFile: deleteFile })
       });
       if (res.ok) {
+        await leaving;
         showToast(deleteFile ? 'Download and file deleted.' : 'Download removed from the list.', 'success');
         // Optimistically remove from state so the row disappears immediately
         state.downloads = state.downloads.filter(d => d.gid !== gid);
@@ -1327,11 +1468,13 @@
         renderTable();
         if (!state.isWebSocket) fetchDownloads();
       } else {
+        restoreRows([gid]);
         const err = await res.json().catch(() => ({}));
         showToast(err.error || 'Could not remove this download.', 'error');
       }
     } catch (e) {
       console.error('Remove failed:', e);
+      restoreRows([gid]);
       showToast('Could not reach Conduit. The download was not removed.', 'error');
     } finally {
       if (triggerBtn) triggerBtn.disabled = false;
@@ -1647,6 +1790,7 @@
 
       elements.confirmClearBtn.disabled = true;
       const gids = targets.map(d => d.gid);
+      const leaving = fadeRowsOut(gids);
 
       try {
         const results = await Promise.all(targets.map(d =>
@@ -1657,8 +1801,10 @@
           }).then(res => res.ok).catch(() => false)
         ));
 
+        await leaving;
         const clearedGids = new Set(gids.filter((_, i) => results[i]));
         const failedCount = gids.length - clearedGids.size;
+        restoreRows(gids.filter(gid => !clearedGids.has(gid)));
 
         state.downloads = state.downloads.filter(d => !clearedGids.has(d.gid));
         updateMetrics();
@@ -1672,6 +1818,7 @@
         closeClearModal();
         if (!state.isWebSocket) fetchDownloads();
       } catch (e) {
+        restoreRows(gids);
         showToast('Could not clear every download. Refresh to check the list.', 'error');
       } finally {
         if (elements.confirmClearBtn) elements.confirmClearBtn.disabled = false;
@@ -1954,6 +2101,16 @@
     }
   }
 
+  // A theme change cross-fades the page rather than flipping it in one frame. Browsers without view
+  // transitions change at once.
+  function changeTheme(choice) {
+    if (!document.startViewTransition) {
+      applyTheme(choice);
+      return;
+    }
+    document.startViewTransition(() => applyTheme(choice));
+  }
+
   // The order a click moves through: system, light, dark, and back to system.
   function nextTheme(choice) {
     const index = THEME_ORDER.indexOf(normalizeTheme(choice));
@@ -1963,7 +2120,7 @@
   async function chooseTheme() {
     const previous = normalizeTheme(elements.themeBtn ? elements.themeBtn.dataset.themeChoice : 'system');
     const next = nextTheme(previous);
-    applyTheme(next);
+    changeTheme(next);
     try {
       const res = await fetch('/api/config', {
         method: 'PUT',
@@ -1972,7 +2129,7 @@
       });
       if (!res.ok) throw new Error(`status ${res.status}`);
     } catch (_) {
-      applyTheme(previous);
+      changeTheme(previous);
       showToast('Could not save the theme. It is back to the last saved choice.', 'error');
     }
   }
@@ -2232,7 +2389,7 @@
   }
   applyTheme(cachedTheme);
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    applyTheme(elements.themeBtn ? elements.themeBtn.dataset.themeChoice : 'system');
+    changeTheme(elements.themeBtn ? elements.themeBtn.dataset.themeChoice : 'system');
   });
 
   if (elements.openSettingsBtn) {
@@ -2364,8 +2521,8 @@
     }
 
     // Older quiet toasts make room before a fifth one stacks up.
-    const open = elements.toastContainer.querySelectorAll('.toast:not(.persist)');
-    if (open.length >= MAX_TOASTS) open[0].remove();
+    const open = elements.toastContainer.querySelectorAll('.toast:not(.persist):not(.is-leaving)');
+    if (open.length >= MAX_TOASTS) ConduitMotion.dismiss(open[0]);
     elements.toastContainer.appendChild(toast);
 
     if (options.persist) {

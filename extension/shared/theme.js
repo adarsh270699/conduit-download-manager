@@ -67,12 +67,18 @@
     return ORDER[(index + 1) % ORDER.length];
   }
 
-  // Save a choice on this page and mark it to be sent to the daemon.
-  function save(value) {
+  // Save a choice and mark it to be sent to the daemon, then cross-fade the page to it, as the dashboard does.
+  // The save happens at once, so a flush right after still sends it. Browsers without view transitions change at once.
+  function change(value, after) {
     const choice = normalize(value);
     write(choice);
     setPending(true);
-    apply(choice);
+    const run = () => {
+      apply(choice);
+      if (after) after();
+    };
+    if (document.startViewTransition) document.startViewTransition(run);
+    else run();
   }
 
   // Send a pending choice to the daemon. Resolves true when nothing is left pending.
@@ -122,5 +128,5 @@
   // Paint the saved scheme as soon as this script loads, before the stylesheet does.
   apply(read());
 
-  global.ConduitTheme = { read, apply, next, save, flush, sync, paintButton };
+  global.ConduitTheme = { read, apply, next, change, flush, sync, paintButton };
 })(window);
