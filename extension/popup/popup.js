@@ -464,10 +464,24 @@
 
   window.addEventListener('unload', stopPolling);
 
+  // Colour scheme: the same setting as the dashboard. A change made here is saved to the daemon now, or
+  // when the daemon is next reachable.
+  const themeBtn = document.getElementById('theme-btn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', async () => {
+      ConduitTheme.save(ConduitTheme.next(ConduitTheme.read()));
+      ConduitTheme.paintButton(themeBtn);
+      await ConduitTheme.flush();
+      ConduitTheme.paintButton(themeBtn);
+    });
+  }
+
   // Initial load
   document.addEventListener('DOMContentLoaded', () => {
     detectCurrentTab();
     refreshStatus();
     startPolling();
+    ConduitTheme.paintButton(themeBtn);
+    ConduitTheme.sync().then(() => ConduitTheme.paintButton(themeBtn));
   });
 })();

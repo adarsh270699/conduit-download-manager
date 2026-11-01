@@ -1,0 +1,13 @@
+{
+  "name": "conduit-vendor-numberflow",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dev-only: bundles NumberFlow into daemon/internal/server/web/vendor. Not shipped with the daemon.",
+  "scripts": {
+    "vendor": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10",
+    "number-flow": "0.6.2"
+  }
+}

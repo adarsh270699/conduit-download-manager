@@ -16,6 +16,13 @@
   }
 
   function showInitiationToast(filename, fileSize) {
+    // The popup and offline pages keep the theme choice in extension storage. This script cannot read their localStorage.
+    chrome.storage.local.get(['conduitTheme'], (data) => {
+      renderInitiationToast(filename, fileSize, data && data.conduitTheme ? data.conduitTheme : 'system');
+    });
+  }
+
+  function renderInitiationToast(filename, fileSize, theme) {
     // Check if host element already exists
     let host = document.getElementById('conduit-toast-host');
     if (!host) {
@@ -34,6 +41,7 @@
     // Toast element
     const toast = document.createElement('div');
     toast.className = 'conduit-toast';
+    toast.dataset.theme = theme;
 
     const sizeStr = formatBytes(fileSize);
     const sizeMeta = sizeStr ? ` (${sizeStr})` : '';
@@ -41,10 +49,10 @@
     toast.innerHTML = `
       <style>
         .conduit-toast {
-          background-color: #413333;
-          color: #F5EBDD;
-          border: 1px solid rgba(245, 235, 221, 0.2);
-          border-radius: 6px;
+          background-color: #FFFFFF;
+          color: #111111;
+          border: 1px solid #CFCFC8;
+          border-radius: 0;
           padding: 8px 14px;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
           font-size: 13px;
@@ -52,7 +60,6 @@
           display: flex;
           align-items: center;
           gap: 9px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
           opacity: 0;
           transform: translateY(10px);
           transition: opacity 0.25s ease, transform 0.25s ease;
@@ -65,11 +72,22 @@
           opacity: 1;
           transform: translateY(0);
         }
+        @media (prefers-color-scheme: dark) {
+          .conduit-toast:not([data-theme="light"]) {
+            background-color: #1A1A1A;
+            color: #F4F4F0;
+            border-color: #3A3A38;
+          }
+        }
+        .conduit-toast[data-theme="dark"] {
+          background-color: #1A1A1A;
+          color: #F4F4F0;
+          border-color: #3A3A38;
+        }
         .conduit-icon {
           flex-shrink: 0;
           width: 15px;
           height: 15px;
-          color: #F2765E;
         }
         .conduit-text {
           overflow: hidden;
@@ -77,7 +95,6 @@
         }
         .conduit-bold {
           font-weight: 600;
-          color: #FFFFFF;
         }
       </style>
       <svg class="conduit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

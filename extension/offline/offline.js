@@ -11,7 +11,6 @@
   const pillText = document.getElementById('pillText');
   const mainHeadline = document.getElementById('mainHeadline');
   const reconnectBanner = document.getElementById('reconnectBanner');
-  const reconnectSpinner = document.getElementById('reconnectSpinner');
   const reconnectText = document.getElementById('reconnectText');
   const attemptCount = document.getElementById('attemptCount');
   const retryBtn = document.getElementById('retryBtn');
@@ -19,13 +18,6 @@
   const heldQueueBox = document.getElementById('heldQueueBox');
   const heldCountBadge = document.getElementById('heldCountBadge');
   const heldItemsList = document.getElementById('heldItemsList');
-
-  // OS Tabs
-  const tabLinux = document.getElementById('tabLinux');
-  const tabWindows = document.getElementById('tabWindows');
-  const panelLinux = document.getElementById('panelLinux');
-  const panelWindows = document.getElementById('panelWindows');
-  const copyBtns = document.querySelectorAll('.btn-copy');
 
   let attempts = 0;
   let checkTimer = null;
@@ -83,15 +75,16 @@
     pillText.textContent = 'Daemon Online';
     mainHeadline.textContent = 'Daemon Connected!';
     reconnectText.textContent = 'Launching Web Dashboard...';
-    reconnectBanner.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-    reconnectBanner.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+    reconnectBanner.classList.add('is-connected');
     retryBtn.disabled = true;
     retryBtnText.textContent = 'Redirecting...';
 
-    // Redirect to the dashboard
-    setTimeout(() => {
-      window.location.href = DASHBOARD_URL;
-    }, 400);
+    // Send a theme chosen while offline first, so the dashboard opens in it.
+    ConduitTheme.flush().finally(() => {
+      setTimeout(() => {
+        window.location.href = DASHBOARD_URL;
+      }, 400);
+    });
   }
 
   function startHealthLoop() {
@@ -119,7 +112,7 @@
 
           if (queue.length > 5) {
             heldItemsList.innerHTML += `
-              <li class="held-item-row" style="justify-content: center; color: var(--text-muted);">
+              <li class="held-item-row held-more">
                 + ${queue.length - 5} more downloads held
               </li>
             `;
@@ -142,55 +135,15 @@
       .replace(/'/g, '&#39;');
   }
 
-  // 3. Setup OS Tabs & Auto-Detect
-  function setupOsTabs() {
-    const isWindows = navigator.platform.indexOf('Win') !== -1 ||
-                      navigator.userAgent.indexOf('Windows') !== -1;
-
-    function selectOs(os) {
-      if (os === 'windows') {
-        tabWindows.classList.add('active');
-        tabLinux.classList.remove('active');
-        panelWindows.classList.remove('hidden');
-        panelLinux.classList.add('hidden');
-      } else {
-        tabLinux.classList.add('active');
-        tabWindows.classList.remove('active');
-        panelLinux.classList.remove('hidden');
-        panelWindows.classList.add('hidden');
-      }
-    }
-
-    tabLinux.addEventListener('click', () => selectOs('linux'));
-    tabWindows.addEventListener('click', () => selectOs('windows'));
-
-    // Default based on detected platform
-    selectOs(isWindows ? 'windows' : 'linux');
-  }
-
-  // 4. Setup Copy Buttons
-  function setupCopyButtons() {
-    copyBtns.forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const targetId = btn.getAttribute('data-target');
-        const codeEl = document.getElementById(targetId);
-        if (codeEl) {
-          const textToCopy = codeEl.textContent.trim();
-          try {
-            await navigator.clipboard.writeText(textToCopy);
-            const span = btn.querySelector('span');
-            const originalText = span.textContent;
-            btn.classList.add('copied');
-            span.textContent = 'Copied!';
-            setTimeout(() => {
-              btn.classList.remove('copied');
-              span.textContent = originalText;
-            }, 1800);
-          } catch (_) {
-            // Fallback selection
-          }
-        }
-      });
+  // Colour scheme: the same setting as the dashboard and the popup. A change made here is kept until the
+  // daemon is reachable, and it is sent before the dashboard opens.
+  const themeBtn = document.getElementById('themeBtn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', async () => {
+      ConduitTheme.save(ConduitTheme.next(ConduitTheme.read()));
+      ConduitTheme.paintButton(themeBtn);
+      await ConduitTheme.flush();
+      ConduitTheme.paintButton(themeBtn);
     });
   }
 
@@ -211,9 +164,9 @@
 
   // Initialize
   document.addEventListener('DOMContentLoaded', () => {
-    setupOsTabs();
-    setupCopyButtons();
     loadHeldQueue();
     startHealthLoop();
+    ConduitTheme.paintButton(themeBtn);
+    ConduitTheme.sync().then(() => ConduitTheme.paintButton(themeBtn));
   });
 })();

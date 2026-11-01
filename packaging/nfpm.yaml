@@ -52,3 +52,7 @@ contents:
     dst: /usr/share/conduit/extension/offline
   - src: extension/icons
     dst: /usr/share/conduit/extension/icons
+  - src: extension/fonts
+    dst: /usr/share/conduit/extension/fonts
+  - src: extension/shared
+    dst: /usr/share/conduit/extension/shared

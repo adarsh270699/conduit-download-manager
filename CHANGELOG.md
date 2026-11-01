@@ -4,6 +4,27 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+### Added
+
+- A colour scheme setting, `theme`, with `system`, `light` and `dark`. The dashboard, the extension popup and the offline page each have a button that cycles through the three, and every surface follows the saved choice. The daemon keeps the setting. The extension keeps a copy, so its pages paint correctly while the daemon is off, and a change made while the daemon is off is sent when it returns.
+- Time left shows seconds: `2:14` under an hour and `1:02:14` from an hour. Speed and time left animate their changes with NumberFlow, a library served by the daemon itself, with no CDN.
+- The dashboard arranges its panels as it opens: the chrome, then the metric cards, filters, next arrival and queue rows rise into place in turn. Reduced motion shows the fade only.
+- An app icon in two tiles, a white tile with ink and yellow, and a black tile with off-white and yellow. The dashboard's tab icon follows the colour scheme.
+- The in-page download notice follows the same colour scheme as the popup.
+
+### Changed
+
+- The dashboard uses the Departures Board look. IBM Plex Sans is bundled, corners are square, and signal yellow marks only the next arrival and the primary action. Status is a lamp with a word.
+- The active count has an ink lamp, not a yellow one. The totals sit in a strip inside the queue panel.
+- The extension popup and offline page use the same look. The offline page no longer shows steps for starting the daemon.
+- The desktop splash uses the same colours as the dashboard.
+
+### Fixed
+
+- A resumed download's banner resizes with an animation instead of jumping to its new height.
+- Refreshing a long queue no longer re-animates every row. Rows that are off screen update when they scroll into view.
+- The active count no longer appears twice above the queue.
+
 ## [1.1.1] - 2026-11-01
 
 ### Security

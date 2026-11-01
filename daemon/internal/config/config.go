@@ -18,6 +18,14 @@ const (
 	DefaultMaxConcurrentDownloads = 5
 )
 
+// Colour schemes. "system" follows the operating system; the other two pin the
+// dashboard, the extension popup and the offline page to one scheme.
+const (
+	ThemeSystem = "system"
+	ThemeLight  = "light"
+	ThemeDark   = "dark"
+)
+
 // Config represents persistent application settings.
 // SetupComplete is nil when the key is absent. An existing file without the
 // key is treated as already set up. A new file stores false so the first
@@ -41,6 +49,9 @@ type Config struct {
 	AutoInstallUpdates bool `json:"autoInstallUpdates"`
 	// EnginePath optionally names the aria2c binary to run. Empty finds it automatically.
 	EnginePath string `json:"enginePath,omitempty"`
+	// Theme is the colour scheme every surface uses: "system", "light" or "dark".
+	// The dashboard, the extension popup and the offline page all read it.
+	Theme string `json:"theme"`
 }
 
 // NeedsSetup reports whether the first-launch wizard must run.
@@ -77,6 +88,12 @@ func (c *Config) ValidateAndClamp() {
 		// bad limit must never reach it.
 		c.MaxDownloadLimit = "0"
 	}
+
+	switch c.Theme {
+	case ThemeLight, ThemeDark:
+	default:
+		c.Theme = ThemeSystem
+	}
 }
 
 // DefaultConfig generates a default configuration object.
@@ -93,6 +110,7 @@ func DefaultConfig() (Config, error) {
 		AutoStart:              false,
 		MaxDownloadLimit:       "0",
 		SetupComplete:          boolPtr(false),
+		Theme:                  ThemeSystem,
 		ShowOnStart:            true,
 		ShowOnComplete:         true,
 		ShowOnError:            true,
@@ -225,6 +243,10 @@ func (m *Manager) Patch(data []byte) (Config, error) {
 func (m *Manager) applyLocked(newCfg Config) (Config, error) {
 	if limit := strings.TrimSpace(newCfg.MaxDownloadLimit); limit != "" && !limitPattern.MatchString(limit) {
 		return m.cfg, fmt.Errorf("%w: download limit %q must be a number of bytes, optionally followed by K or M", ErrInvalid, newCfg.MaxDownloadLimit)
+	}
+	// A save that does not name a theme keeps the current one.
+	if newCfg.Theme == "" {
+		newCfg.Theme = m.cfg.Theme
 	}
 	newCfg.EnginePath = strings.TrimSpace(newCfg.EnginePath)
 	if newCfg.EnginePath != "" && !filepath.IsAbs(newCfg.EnginePath) {

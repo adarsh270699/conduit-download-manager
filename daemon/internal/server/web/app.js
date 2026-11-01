@@ -17,7 +17,21 @@
   const elements = {
     connectionStatus: document.getElementById('connectionStatus'),
     metricActiveCount: document.getElementById('metricActiveCount'),
+    nextArrival: document.getElementById('nextArrival'),
+    nextFrame: document.getElementById('nextFrame'),
+    nextName: document.getElementById('nextName'),
+    nextMeta: document.getElementById('nextMeta'),
+    nextValue: document.getElementById('nextValue'),
+    nextTimeLabel: document.getElementById('nextTimeLabel'),
+    nextClock: document.getElementById('nextClock'),
+    nextHoursPart: document.getElementById('nextHoursPart'),
+    nextHours: document.getElementById('nextHours'),
+    nextMinutes: document.getElementById('nextMinutes'),
+    nextSeconds: document.getElementById('nextSeconds'),
     metricTotalSpeed: document.getElementById('metricTotalSpeed'),
+    metricSpeedText: document.getElementById('metricSpeedText'),
+    metricSpeedNumber: document.getElementById('metricSpeedNumber'),
+    metricSpeedUnit: document.getElementById('metricSpeedUnit'),
     metricCompleteCount: document.getElementById('metricCompleteCount'),
     countAll: document.getElementById('countAll'),
     countActive: document.getElementById('countActive'),
@@ -26,6 +40,7 @@
     countError: document.getElementById('countError'),
     searchInput: document.getElementById('searchInput'),
     tabBtns: document.querySelectorAll('.tab-btn'),
+    tabIndicator: document.querySelector('.tab-indicator'),
     transferTableBody: document.getElementById('transferTableBody'),
     emptyState: document.getElementById('emptyState'),
     emptyTitle: document.getElementById('emptyTitle'),
@@ -84,6 +99,8 @@
     // Settings Drawer
     settingsDrawer: document.getElementById('settingsDrawer'),
     openSettingsBtn: document.getElementById('openSettingsBtn'),
+    themeBtn: document.getElementById('themeBtn'),
+    appIcon: document.getElementById('appIcon'),
     closeSettingsBtn: document.getElementById('closeSettingsBtn'),
     settingsForm: document.getElementById('settingsForm'),
     cfgDownloadDir: document.getElementById('cfgDownloadDir'),
@@ -115,6 +132,64 @@
 
   // State caches & focus management
   const renderedRows = new Map();
+
+  // Only the figures on screen roll. Each rolling digit is a running animation on the main thread, so a long
+  // queue must not animate every row at once. A row off screen keeps its values until it comes into view;
+  // its figures are then brought up to date and rolled. A margin counts a row as on screen just before its edge.
+  const VIEW_MARGIN = 120;
+
+  function refreshRowViewport() {
+    const area = document.getElementById('mainContent');
+    if (!area || renderedRows.size === 0) return;
+    // Read every row's place first, then write, so the layout is read once.
+    const areaRect = area.getBoundingClientRect();
+    const top = areaRect.top - VIEW_MARGIN;
+    const bottom = areaRect.bottom + VIEW_MARGIN;
+    const places = [];
+    renderedRows.forEach(row => {
+      const rect = row.getBoundingClientRect();
+      places.push([row, rect.bottom > top && rect.top < bottom]);
+    });
+    places.forEach(([row, visible]) => {
+      row.querySelectorAll('number-flow').forEach(flow => {
+        flow._onScreen = visible;
+        flow.animated = visible;
+        if (visible && flow._pending) {
+          const { value, format } = flow._pending;
+          flow._pending = null;
+          if (flow._shown !== value) {
+            flow._shown = value;
+            setFigure(flow, value, format);
+          }
+        }
+      });
+    });
+  }
+
+  let viewportFrame = 0;
+  function scheduleRowViewport() {
+    if (viewportFrame) return;
+    viewportFrame = requestAnimationFrame(() => {
+      viewportFrame = 0;
+      refreshRowViewport();
+    });
+  }
+
+  let lastOrderKey = null;
+  let lastNextGid;
+
+  // NumberFormat options for the figures. The objects are shared so NumberFlow keeps its formatter.
+  const FORMAT_WHOLE = { useGrouping: false };
+  const FORMAT_TWO_DIGITS = { useGrouping: false, minimumIntegerDigits: 2 };
+  const FORMAT_SPEED = { useGrouping: false, maximumFractionDigits: 1 };
+  // Digits roll over 300ms on the dialog's ease-out curve.
+  const FLOW_TIMING = { duration: 300, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' };
+
+  // Bootup timing in seconds. Groups enter in reading order, and queue lines follow them.
+  const BOOT_GROUP_STEP = 0.04;
+  const BOOT_ROW_STEP = 0.03;
+  const BOOT_ROW_LIMIT = 8;
+  let booted = false;
   let pendingDeleteGid = null;
   let pendingMoveGid = null;
   let lastActiveElement = null;
@@ -151,6 +226,7 @@
     if (!openLayers.includes(layer)) {
       openLayers.push(layer);
     }
+    ConduitMotion.cancelLeave(layer);
     layer.classList.remove('hidden');
     // Focus the layer before the background becomes inert or hidden to AT.
     const target = focusTarget || focusablesIn(layer)[0] || layer;
@@ -162,7 +238,7 @@
 
   function closeLayer(layer) {
     if (!layer) return;
-    layer.classList.add('hidden');
+    ConduitMotion.leave(layer);
     const cleanup = layerCleanup[layer.id];
     if (cleanup) cleanup();
     const idx = openLayers.indexOf(layer);
@@ -234,8 +310,37 @@
   let reconnectDelay = 1000;
   const maxReconnectDelay = 10000;
 
+  // Bootup: the dashboard's elements arrange into place once, in reading order, when it opens.
+  // index.html marks the groups. Queue lines follow them. Reduced motion fades with no stagger.
+  function bootDashboard() {
+    if (booted) return;
+    booted = true;
+    const quiet = ConduitMotion.reduced();
+    const groups = Array.from(document.querySelectorAll('[data-boot-group]'));
+    groups.forEach((el, i) => ConduitMotion.enter(el, 12, quiet ? 0 : i * BOOT_GROUP_STEP));
+    const rowStart = groups.length * BOOT_GROUP_STEP;
+    Array.from(elements.transferTableBody.children).forEach((row, i) => {
+      ConduitMotion.enter(row, 12, quiet ? 0 : rowStart + Math.min(i, BOOT_ROW_LIMIT) * BOOT_ROW_STEP);
+    });
+    document.documentElement.removeAttribute('data-boot');
+  }
+
   function initConnection() {
     connectWebSocket();
+    // Rows that scroll or resize into view bring their figures up to date.
+    const area = document.getElementById('mainContent');
+    if (area) area.addEventListener('scroll', scheduleRowViewport, { passive: true });
+    window.addEventListener('resize', scheduleRowViewport);
+    // NumberFlow defines itself when its module loads, which may be after this script. Redraw the figures then.
+    if (window.customElements) {
+      customElements.whenDefined('number-flow').then(() => {
+        // Figures drawn as plain text before the module loaded are NumberFlows now, so draw them again.
+        updateMetrics();
+        renderTable();
+      });
+    }
+    // With no data yet the page still arranges itself, so the chrome does not stay hidden.
+    setTimeout(bootDashboard, 1500);
   }
 
   function connectWebSocket() {
@@ -446,6 +551,8 @@
     state.loadFailed = false;
     updateMetrics();
     renderTable();
+    refreshRowViewport();
+    bootDashboard();
   }
 
   function markLoadFailed() {
@@ -474,18 +581,22 @@
       }
     });
 
-    if (elements.metricActiveCount) elements.metricActiveCount.textContent = activeCount;
+    setFigure(elements.metricActiveCount, activeCount, FORMAT_WHOLE);
     if (elements.metricTotalSpeed) {
-      elements.metricTotalSpeed.textContent = formatSpeed(totalSpeed);
+      const speed = speedParts(totalSpeed);
+      setFigure(elements.metricSpeedNumber, speed.value, FORMAT_SPEED);
+      if (elements.metricSpeedUnit) elements.metricSpeedUnit.textContent = speed.unit;
+      if (elements.metricSpeedText) elements.metricSpeedText.textContent = formatSpeed(totalSpeed);
       elements.metricTotalSpeed.classList.toggle('active-speed', totalSpeed > 0);
     }
-    if (elements.metricCompleteCount) elements.metricCompleteCount.textContent = completeCount;
+    setFigure(elements.metricCompleteCount, completeCount, FORMAT_WHOLE);
 
     if (elements.countAll) elements.countAll.textContent = state.downloads.length;
     if (elements.countActive) elements.countActive.textContent = activeCount;
     if (elements.countComplete) elements.countComplete.textContent = completeCount;
     if (elements.countPaused) elements.countPaused.textContent = pausedCount;
     if (elements.countError) elements.countError.textContent = errorCount;
+    renderNextArrival();
 
     // A batch button that cannot act stays disabled, so no click lands on nothing.
     const finishedTotal = completeCount + errorCount;
@@ -507,6 +618,245 @@
         ? 'No finished downloads to clear'
         : `Remove ${finishedTotal} finished ${finishedTotal === 1 ? 'download' : 'downloads'} from the list`;
     }
+  }
+
+  // Time left for one active download, from its remaining bytes and speed.
+  function secondsLeft(item) {
+    const left = (item.totalLength || 0) - (item.completedLength || 0);
+    if (!(item.downloadSpeed > 0) || left <= 0) return Infinity;
+    return left / item.downloadSpeed;
+  }
+
+  // A figure is a NumberFlow once the vendored element is defined. Before then, and without it, it is plain text.
+  function setFigure(el, value, format) {
+    if (!el) return;
+    if (typeof el.update === 'function') {
+      if (el.transformTiming !== FLOW_TIMING) el.transformTiming = FLOW_TIMING;
+      if (el.format !== format) el.format = format;
+      el.update(value);
+    } else {
+      el.textContent = String(value);
+    }
+  }
+
+  // A size as a number and a unit, matching formatBytes, so the number can roll with NumberFlow.
+  function sizeParts(bytes) {
+    if (!bytes || bytes <= 0) return { value: 0, unit: 'B' };
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.min(sizes.length - 1, Math.floor(Math.log(bytes) / Math.log(k)));
+    return { value: Number((bytes / Math.pow(k, i)).toFixed(1)), unit: sizes[i] };
+  }
+
+  // Speed as a number and a unit.
+  function speedParts(bytesPerSec) {
+    if (!bytesPerSec || bytesPerSec <= 0) return { value: 0, unit: 'B/s' };
+    const size = sizeParts(bytesPerSec);
+    return { value: size.value, unit: `${size.unit}/s` };
+  }
+
+  // A run of figures, such as "5.8 MB/s", "2m 14s" or "3.9 GB / 6.3 GB". Each number is a NumberFlow and each
+  // unit is text. The markup is rebuilt only when the units change, and the values update in place. Screen
+  // readers get the plain text once, in a visually hidden line.
+  function setFigureRun(host, parts) {
+    if (!host) return;
+    if (!host._visual) {
+      host._visual = document.createElement('span');
+      host._visual.setAttribute('aria-hidden', 'true');
+      host._label = document.createElement('span');
+      host._label.className = 'sr-only';
+      host.append(host._visual, host._label);
+    }
+    const shape = parts.map(p => (p.text !== undefined ? 'text' : `${p.lead || ''}${p.unit}`)).join('|');
+    if (host._shape !== shape) {
+      host._shape = shape;
+      host._visual.textContent = '';
+      parts.forEach(p => {
+        if (p.text !== undefined) {
+          host._visual.appendChild(document.createTextNode(p.text));
+          return;
+        }
+        host._visual.appendChild(document.createElement('number-flow'));
+        if (p.lead) host._visual.appendChild(document.createTextNode(p.lead));
+        const unit = document.createElement('span');
+        unit.textContent = p.unit;
+        host._visual.appendChild(unit);
+      });
+    }
+    const flows = host._visual.querySelectorAll('number-flow');
+    let n = 0;
+    parts.forEach(p => {
+      if (p.text !== undefined) return;
+      const el = flows[n++];
+      // Until NumberFlow is defined the number is plain text. Once it is, the value is set and then animated.
+      if (typeof el.update !== 'function') {
+        el.textContent = String(p.value);
+        return;
+      }
+      // Only a row the observer has reported off screen defers its values. Until it reports, values update.
+      if (el._onScreen === false) {
+        el._pending = { value: p.value, format: p.format };
+        return;
+      }
+      if (el._shown !== p.value) {
+        el._shown = p.value;
+        setFigure(el, p.value, p.format);
+      }
+    });
+    // Writing the same text again still invalidates layout, so write only a change.
+    const label = parts
+      .map(p => (p.text !== undefined ? p.text : `${p.value}${p.lead || ''}${p.unit}`))
+      .join('');
+    if (host._label.textContent !== label) host._label.textContent = label;
+  }
+
+  // The figures of one queue line. An idle line shows a dash.
+  function speedRun(item) {
+    if (item.status !== 'active') return [{ text: '--' }];
+    const speed = speedParts(item.downloadSpeed);
+    return [{ value: speed.value, lead: ' ', unit: speed.unit, format: FORMAT_SPEED }];
+  }
+
+  function bytesRun(item) {
+    const done = sizeParts(item.completedLength);
+    const total = sizeParts(item.totalLength);
+    return [
+      { value: done.value, lead: ' ', unit: done.unit, format: FORMAT_SPEED },
+      { text: ' / ' },
+      { value: total.value, lead: ' ', unit: total.unit, format: FORMAT_SPEED },
+    ];
+  }
+
+  // Time left in the words the queue has always used: "45s", "2m 14s", "1h 5m".
+  function etaRun(item) {
+    const idle = item.status !== 'active' || !(item.downloadSpeed > 0) || !item.totalLength
+      || item.completedLength >= item.totalLength;
+    if (idle) return [{ text: '--' }];
+    const seconds = Math.max(0, Math.round((item.totalLength - item.completedLength) / item.downloadSpeed));
+    if (seconds < 60) return [{ value: seconds, unit: 's', format: FORMAT_WHOLE }];
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) {
+      return [
+        { value: minutes, unit: 'm', format: FORMAT_WHOLE },
+        { text: ' ' },
+        { value: seconds % 60, unit: 's', format: FORMAT_WHOLE },
+      ];
+    }
+    return [
+      { value: Math.floor(minutes / 60), unit: 'h', format: FORMAT_WHOLE },
+      { text: ' ' },
+      { value: minutes % 60, unit: 'm', format: FORMAT_WHOLE },
+    ];
+  }
+
+  // Time left in whole seconds, rounded up so the clock never reads zero while data is still coming.
+  // Under an hour it reads m:ss; from an hour it reads h:mm:ss.
+  function clockParts(seconds) {
+    const total = Math.max(1, Math.ceil(seconds));
+    return {
+      hours: Math.floor(total / 3600),
+      minutes: Math.floor((total % 3600) / 60),
+      seconds: total % 60,
+    };
+  }
+
+  // The same time as a sentence, for screen readers.
+  function spokenTime(clock) {
+    const parts = [];
+    if (clock.hours) parts.push(`${clock.hours} ${clock.hours === 1 ? 'hour' : 'hours'}`);
+    if (clock.hours || clock.minutes) parts.push(`${clock.minutes} ${clock.minutes === 1 ? 'minute' : 'minutes'}`);
+    parts.push(`${clock.seconds} ${clock.seconds === 1 ? 'second' : 'seconds'}`);
+    return parts.join(' ');
+  }
+
+  // Show the time left as a clock, with the screen-reader sentence to match.
+  function showClock(clock) {
+    const hasHours = clock.hours > 0;
+    elements.nextValue.classList.add('hidden');
+    elements.nextClock.classList.remove('hidden');
+    elements.nextHoursPart.classList.toggle('hidden', !hasHours);
+    setFigure(elements.nextHours, clock.hours, FORMAT_WHOLE);
+    setFigure(elements.nextMinutes, clock.minutes, hasHours ? FORMAT_TWO_DIGITS : FORMAT_WHOLE);
+    setFigure(elements.nextSeconds, clock.seconds, FORMAT_TWO_DIGITS);
+    elements.nextTimeLabel.textContent = `Time left: ${spokenTime(clock)}`;
+  }
+
+  // Show a dash in place of the clock, for the states with no time to give.
+  function showDash(label) {
+    elements.nextClock.classList.add('hidden');
+    elements.nextValue.classList.remove('hidden');
+    elements.nextValue.textContent = '--';
+    elements.nextTimeLabel.textContent = label;
+  }
+
+  // The band enters when the next arrival changes. The digits roll on their own with NumberFlow.
+  function animateNextArrival(gid) {
+    if (lastNextGid !== undefined && gid !== lastNextGid) {
+      ConduitMotion.enter(elements.nextArrival.querySelector('.next-arrival-text'), 10);
+    }
+    lastNextGid = gid;
+  }
+
+  // The band's height eases when its content changes state, such as a resumed download taking the band.
+  function renderNextArrival() {
+    const before = booted ? elements.nextFrame.getBoundingClientRect().height : null;
+    paintNextArrival();
+    if (before !== null) ConduitMotion.resize(elements.nextFrame, before);
+  }
+
+  // The next arrival is the active download with the least time left.
+  function paintNextArrival() {
+    if (!elements.nextArrival || !elements.nextName) return;
+
+    let next = null;
+    let nextSeconds = Infinity;
+    let waiting = null;
+    state.downloads.forEach(d => {
+      if (d.status !== 'active') return;
+      const seconds = secondsLeft(d);
+      if (seconds === Infinity) {
+        // Active but not moving yet: name it rather than claim nothing is downloading.
+        waiting = waiting || d;
+        return;
+      }
+      if (seconds < nextSeconds) {
+        next = d;
+        nextSeconds = seconds;
+      }
+    });
+
+    elements.nextArrival.classList.toggle('is-idle', !next && !waiting);
+
+    if (!next && waiting) {
+      elements.nextName.textContent = waiting.filename || waiting.gid;
+      elements.nextMeta.textContent = `Waiting for data · ${Number(waiting.connections) || 16} connections`;
+      showDash('Time left: waiting for data');
+      animateNextArrival(waiting.gid);
+      return;
+    }
+
+    if (!next) {
+      const paused = state.downloads.filter(d => d.status === 'paused').length;
+      const failed = state.downloads.filter(d => d.status === 'error').length;
+      const hasDownloads = state.downloads.length > 0;
+      const notes = [];
+      if (paused) notes.push(`${paused} paused`);
+      if (failed) notes.push(`${failed} failed`);
+      elements.nextName.textContent = hasDownloads ? 'Nothing is downloading' : 'Nothing in transit';
+      elements.nextMeta.textContent = !hasDownloads
+        ? 'Add a link to start. Finished files go to your download folder.'
+        : notes.length ? notes.join(' · ') : 'Nothing is in transit.';
+      showDash('Time left: nothing is downloading');
+      animateNextArrival(null);
+      return;
+    }
+
+    const clock = clockParts(nextSeconds);
+    const connections = Number(next.connections) || 16;
+    elements.nextName.textContent = next.filename || next.gid;
+    elements.nextMeta.textContent = `Next to finish · ${formatSpeed(next.downloadSpeed)} · ${connections} connections`;
+    showClock(clock);
+    animateNextArrival(next.gid);
   }
 
   function renderTable() {
@@ -581,6 +931,22 @@
     if (elements.emptyState) elements.emptyState.classList.add('hidden');
     if (elements.transferTable) elements.transferTable.classList.remove('hidden');
 
+    // A reorder moves rows. Record where each row is now, then let it glide to its new place.
+    const orderKey = filtered.map(item => item.gid).join('|');
+    const reordering = lastOrderKey !== null && orderKey !== lastOrderKey;
+    // Where each row is on screen, and how far it is still travelling, so a reorder that
+    // lands mid-glide continues from there with its velocity.
+    const previousTops = new Map();
+    if (reordering) {
+      renderedRows.forEach((row, gid) => {
+        previousTops.set(gid, {
+          visual: row.getBoundingClientRect().top,
+          offset: ConduitMotion.offsetY(row),
+        });
+      });
+    }
+    lastOrderKey = orderKey;
+
     const currentGids = new Set();
 
     filtered.forEach((item, index) => {
@@ -590,8 +956,6 @@
         ? Math.min(100, Math.round((item.completedLength / item.totalLength) * 100))
         : (item.status === 'complete' ? 100 : 0);
 
-      const speedStr = item.status === 'active' ? formatSpeed(item.downloadSpeed) : '--';
-      const etaStr = item.status === 'active' ? formatETA(item.totalLength, item.completedLength, item.downloadSpeed) : '--';
       const badgeClass = getBadgeClass(item.status);
       const conns = Number(item.connections) || 16;
       const connsBadgeHtml = item.status === 'active'
@@ -647,28 +1011,16 @@
           row._lastConnsBadge = connsBadgeHtml;
         }
 
-        const bytesEl = row.querySelector('.progress-bytes');
-        const bytesText = `${formatBytes(item.completedLength)} / ${formatBytes(item.totalLength)}`;
-        if (bytesEl && bytesEl.textContent !== bytesText) {
-          bytesEl.textContent = bytesText;
-        }
+        setFigureRun(row.querySelector('.progress-bytes'), bytesRun(item));
 
         const speedCell = row.querySelector('.col-speed');
         if (speedCell) {
-          if (speedCell.textContent !== speedStr) {
-            speedCell.textContent = speedStr;
-          }
-          if (item.status === 'active') {
-            speedCell.classList.add('active');
-          } else {
-            speedCell.classList.remove('active');
-          }
+          setFigureRun(speedCell.querySelector('.figure-run'), speedRun(item));
+          speedCell.classList.toggle('active', item.status === 'active');
         }
 
         const etaCell = row.querySelector('.col-eta');
-        if (etaCell && etaCell.textContent !== etaStr) {
-          etaCell.textContent = etaStr;
-        }
+        if (etaCell) setFigureRun(etaCell.querySelector('.figure-run'), etaRun(item));
 
         const badge = row.querySelector('.col-status .badge');
         if (badge) {
@@ -692,6 +1044,8 @@
       } else {
         // Create new row
         row = document.createElement('tr');
+        // Rows made during bootup are entered by bootDashboard, so they get no CSS entrance.
+        if (booted) row.classList.add('row-enter');
         row.dataset.gid = item.gid;
         row._lastStatus = item.status;
         row._lastError = item.errorMessage || '';
@@ -715,12 +1069,12 @@
                   <span class="progress-percent">${percent}%</span>
                   <span class="conns-badge-wrap">${connsBadgeHtml}</span>
                 </span>
-                <span class="progress-bytes">${formatBytes(item.completedLength)} / ${formatBytes(item.totalLength)}</span>
+                <span class="progress-bytes"></span>
               </div>
             </div>
           </td>
-          <td class="col-speed ${item.status === 'active' ? 'active' : ''}">${speedStr}</td>
-          <td class="col-eta">${etaStr}</td>
+          <td class="col-speed ${item.status === 'active' ? 'active' : ''}"><span class="figure-run"></span></td>
+          <td class="col-eta"><span class="figure-run"></span></td>
           <td class="col-status">
             <span class="badge ${badgeClass}">${escapeHtml(statusLabel(item.status))}</span>
           </td>
@@ -730,6 +1084,13 @@
             </div>
           </td>
         `;
+
+        setFigureRun(row.querySelector('.progress-bytes'), bytesRun(item));
+        setFigureRun(row.querySelector('.col-speed .figure-run'), speedRun(item));
+        setFigureRun(row.querySelector('.col-eta .figure-run'), etaRun(item));
+        // A new row's figures stay still until the row is checked against the viewport. Starting them all
+        // at once would queue a burst of running digit animations on the main thread.
+        row.querySelectorAll('number-flow').forEach(flow => { flow.animated = false; });
 
         renderedRows.set(item.gid, row);
       }
@@ -746,6 +1107,16 @@
         row.remove();
         renderedRows.delete(gid);
       }
+    }
+
+    if (reordering) {
+      renderedRows.forEach((row, gid) => {
+        const before = previousTops.get(gid);
+        if (!before) return;
+        // The new layout place is the visual place minus the offset still in flight.
+        const start = before.visual - row.getBoundingClientRect().top + before.offset;
+        ConduitMotion.flip(row, start);
+      });
     }
   }
 
@@ -764,9 +1135,8 @@
       if (visibleCount !== total) {
         text = `${visibleCount} of ${total} ${total === 1 ? 'download' : 'downloads'}`;
       } else {
-        const active = state.downloads.filter(d => d.status === 'active').length;
+        // The active count lives in the filter tabs and the queue totals, so the summary keeps to the total.
         text = `${total} ${total === 1 ? 'download' : 'downloads'}`;
-        if (active > 0) text += ' \u00B7 ' + active + ' active';
       }
     } else {
       text = 'No downloads';
@@ -1309,6 +1679,25 @@
     });
   }
 
+  // The underline is one element that slides between tabs, so a change of filter reads as a move.
+  function placeTabIndicator(instant) {
+    const indicator = elements.tabIndicator;
+    const active = [...elements.tabBtns].find(btn => btn.classList.contains('active'));
+    if (!indicator || !active) return;
+    const host = indicator.parentElement.getBoundingClientRect();
+    const rect = active.getBoundingClientRect();
+    const x = rect.left - host.left;
+    const w = rect.width;
+    if (instant || !indicator.style.transform) {
+      ConduitMotion.place(indicator, x, w);
+    } else {
+      ConduitMotion.slideTo(indicator, x, w);
+    }
+  }
+
+  window.addEventListener('resize', () => placeTabIndicator(true));
+  if (document.fonts) document.fonts.ready.then(() => placeTabIndicator(true));
+
   // Filter Tabs with WAI-ARIA tab pattern & keyboard navigation
   function setFilter(filterName) {
     state.filter = filterName;
@@ -1318,6 +1707,7 @@
       btn.setAttribute('aria-selected', isMatch ? 'true' : 'false');
       btn.tabIndex = isMatch ? 0 : -1;
     });
+    placeTabIndicator(false);
     renderTable();
   }
 
@@ -1524,7 +1914,72 @@
   // applySettings renders a config object. With keepOpenForm, an open
   // settings drawer is left alone so a pushed update never overwrites what the
   // user is typing; the drawer reloads settings each time it opens.
+  // Colour scheme. "system" follows the operating system; "light" and "dark" pin it. The daemon's setting is
+  // the one every surface reads. This page keeps a copy so the next load paints in the chosen scheme at once.
+  const THEME_ORDER = ['system', 'light', 'dark'];
+  const THEME_LABELS = { system: 'follows the system', light: 'light', dark: 'dark' };
+  const THEME_BOARD = { light: '#F3F3EF', dark: '#0E0E0E' };
+
+  function normalizeTheme(value) {
+    return THEME_ORDER.includes(value) ? value : 'system';
+  }
+
+  function applyTheme(choice) {
+    const value = normalizeTheme(choice);
+    if (value === 'system') {
+      delete document.documentElement.dataset.theme;
+    } else {
+      document.documentElement.dataset.theme = value;
+    }
+    const resolved = value === 'system'
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : value;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', THEME_BOARD[resolved]);
+    // System follows the media query inside favicon.svg; an explicit choice picks its own file.
+    const iconHref = value === 'system' ? '/favicon.svg' : `/favicon-${value}.svg`;
+    if (elements.appIcon && elements.appIcon.getAttribute('href') !== iconHref) {
+      elements.appIcon.setAttribute('href', iconHref);
+    }
+    if (elements.themeBtn) {
+      elements.themeBtn.dataset.themeChoice = value;
+      const label = `Theme: ${THEME_LABELS[value]}. Select to change`;
+      elements.themeBtn.title = label;
+      elements.themeBtn.setAttribute('aria-label', label);
+    }
+    try {
+      localStorage.setItem('conduit-theme', value);
+    } catch (_) {
+      // Private windows may refuse storage. The choice still applies for this page.
+    }
+  }
+
+  // The order a click moves through: system, light, dark, and back to system.
+  function nextTheme(choice) {
+    const index = THEME_ORDER.indexOf(normalizeTheme(choice));
+    return THEME_ORDER[(index + 1) % THEME_ORDER.length];
+  }
+
+  async function chooseTheme() {
+    const previous = normalizeTheme(elements.themeBtn ? elements.themeBtn.dataset.themeChoice : 'system');
+    const next = nextTheme(previous);
+    applyTheme(next);
+    try {
+      const res = await fetch('/api/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: next })
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+    } catch (_) {
+      applyTheme(previous);
+      showToast('Could not save the theme. It is back to the last saved choice.', 'error');
+    }
+  }
+
   function applySettings(cfg, { keepOpenForm = false } = {}) {
+    // Every open dashboard, and the extension popup on its next open, follows the saved theme.
+    applyTheme(cfg.theme);
     const limit = cfg.maxDownloadLimit || '0';
     if (elements.speedLimiterSelect) elements.speedLimiterSelect.value = limit;
     syncQuietModeAccent(limit);
@@ -1765,6 +2220,21 @@
     });
   }
 
+  if (elements.themeBtn) {
+    elements.themeBtn.addEventListener('click', chooseTheme);
+  }
+  // Paint the cached choice straight away. The daemon's setting replaces it once settings load.
+  let cachedTheme = 'system';
+  try {
+    cachedTheme = localStorage.getItem('conduit-theme') || 'system';
+  } catch (_) {
+    // Storage may be refused; the page then follows the system until settings load.
+  }
+  applyTheme(cachedTheme);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    applyTheme(elements.themeBtn ? elements.themeBtn.dataset.themeChoice : 'system');
+  });
+
   if (elements.openSettingsBtn) {
     elements.openSettingsBtn.addEventListener('click', openSettingsDrawer);
   }
@@ -1865,9 +2335,7 @@
     let timer = null;
     const dismiss = () => {
       clearTimeout(timer);
-      toast.style.opacity = '0';
-      toast.style.transition = 'opacity 0.3s ease';
-      setTimeout(() => toast.remove(), 300);
+      ConduitMotion.dismiss(toast);
     };
 
     if (actions.length || options.persist) {
@@ -1990,7 +2458,7 @@
     row.classList.remove('row-flash');
     void row.offsetWidth; // restart the animation if the row flashed before
     row.classList.add('row-flash');
-    setTimeout(() => row.classList.remove('row-flash'), 2400);
+    setTimeout(() => row.classList.remove('row-flash'), 1000);
   }
 
   // 5. Formatting Utilities
@@ -2007,17 +2475,6 @@
     return formatBytes(bytesPerSec) + '/s';
   }
 
-  function formatETA(total, completed, speed) {
-    if (!speed || speed <= 0 || !total || completed >= total) return '--';
-    const remainingSeconds = Math.max(0, Math.round((total - completed) / speed));
-    if (remainingSeconds < 60) return `${remainingSeconds}s`;
-    const minutes = Math.floor(remainingSeconds / 60);
-    const seconds = remainingSeconds % 60;
-    if (minutes < 60) return `${minutes}m ${seconds}s`;
-    const hours = Math.floor(minutes / 60);
-    const remMinutes = minutes % 60;
-    return `${hours}h ${remMinutes}m`;
-  }
 
   function escapeHtml(str) {
     if (!str) return '';
