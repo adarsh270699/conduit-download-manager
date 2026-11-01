@@ -4,6 +4,8 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-02
+
 ### Changed
 
 - State changes that used to land in one frame now move. The setup steps and the browser guide, a download line removed by a confirmed delete or clear, the connection banner, the first-time empty queue, the theme icon, and the page colour change, which now cross-fades. The close button and the extension popup's small buttons press like the other buttons. Reduced motion keeps the fades and drops the movement.
@@ -73,7 +75,8 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 - Download URLs are limited to HTTP, HTTPS, and FTP.
 - The internal aria2 RPC port uses a per-launch random secret and checks engine ownership before use.
 
-[Unreleased]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.0.0...v1.1.0
