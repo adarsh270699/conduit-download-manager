@@ -147,7 +147,7 @@ curl -s -X POST http://127.0.0.1:18800/api/downloads \
 ### Prerequisites
 
 - **Go 1.27.2+**
-- **Wails CLI v2.11.0** for the native window: `go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0`
+- **Wails CLI v2.17.0** for the native window: `go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0`
 - **Node.js 20+** for the extension tests
 - **make**, **zip**, **unzip**, and **curl** for the Makefile targets (Git Bash or MSYS2 on Windows; Windows uses the PowerShell downloader); the quick build scripts do not need make or zip
 - **Windows installer:** NSIS 3

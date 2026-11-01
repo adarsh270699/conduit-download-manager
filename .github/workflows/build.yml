@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  WAILS_VERSION: v2.11.0
+  WAILS_VERSION: v2.17.0
   NFPM_VERSION: v2.41.3
   ACTIONLINT_VERSION: v1.7.7
 

@@ -220,7 +220,8 @@
   }
 
   // Hide a layer after its exit animation finishes. Reduced motion uses the fade only.
-  function leave(el) {
+  // An optional callback runs once the layer is hidden, so the next layer can take its place.
+  function leave(el, then) {
     if (!el || el.classList.contains('hidden') || el.classList.contains('is-leaving')) return;
     el.classList.add('is-leaving');
     const finish = (event) => {
@@ -228,6 +229,7 @@
       cancelLeave(el);
       el.classList.add('hidden');
       el.classList.remove('is-leaving');
+      if (then) then();
     };
     el._leaveFinish = finish;
     el.addEventListener('animationend', finish);
@@ -243,6 +245,29 @@
     el._leaveFinish = null;
     el._leaveTimer = null;
     el.classList.remove('is-leaving');
+  }
+
+  // Ease a box's height to zero, then run done. A box reopened mid-way keeps its velocity, and the old done is dropped.
+  function collapse(el, done) {
+    if (!el) return;
+    if (reduced()) {
+      cancel(el);
+      el.style.height = '';
+      done();
+      return;
+    }
+    const inFlight = !!(el._spring && el._spring.channels.h);
+    const from = el.getBoundingClientRect().height;
+    drive(el, { h: { to: 0, from: inFlight ? undefined : from, min: 0.5 } }, {
+      response: RESPONSE.move,
+      write: (v) => {
+        el.style.height = v.h + 'px';
+      },
+      end: () => {
+        el.style.height = '';
+        done();
+      },
+    });
   }
 
   // Remove a toast after its exit animation finishes.
@@ -267,6 +292,7 @@
     place: place,
     slideTo: slideTo,
     resize: resize,
+    collapse: collapse,
     cancel: cancel,
     leave: leave,
     cancelLeave: cancelLeave,

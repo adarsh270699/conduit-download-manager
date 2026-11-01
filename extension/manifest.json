@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Conduit Download Interceptor",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "High-speed download interception and acceleration companion for the Conduit agent daemon.",
   "permissions": [
     "downloads",

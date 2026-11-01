@@ -143,6 +143,53 @@
   color: var(--accent-primary-hover);
 }
 
+/* The step heading takes focus when its step appears. It is not a control, so it needs no ring. */
+.setup-card h1:focus {
+  outline: none;
+}
+
+/* Setup steps leave and arrive in turn (setup.js). The continue button and the browser steps rise in.
+   Reduced motion keeps the fades and drops the movement. */
+.setup-card.is-leaving {
+  animation: setup-leave 160ms cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+.setup-reveal,
+.guide-steps:not(.hidden) {
+  animation: setup-rise 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes setup-leave {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateY(-12px); }
+}
+
+@keyframes setup-rise {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes setup-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes setup-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setup-card.is-leaving {
+    animation-name: setup-fade-out;
+  }
+
+  .setup-reveal,
+  .guide-steps:not(.hidden) {
+    animation-name: setup-fade-in;
+  }
+}
+
 @media (max-width: 520px) {
   .setup-page,
   .guide-page {

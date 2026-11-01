@@ -8,7 +8,7 @@ Thanks for helping improve Conduit. This guide covers the local workflow, the qu
 - **Node.js 20+** for the extension test suite.
 - **make**, **zip**, **unzip**, and **curl** with a POSIX shell (Git Bash or MSYS2 on Windows); the quick build scripts do not need make or zip.
 - Optional but needed for the native window:
-  - Wails v2.11.0: `go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0`
+  - Wails v2.17.0: `go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0`
   - Windows: NSIS 3.
   - Ubuntu 24.04: `gcc`, `libgtk-3-dev`, `libwebkit2gtk-4.1-dev`, `libayatana-appindicator3-dev`, and `nfpm`.
 - Conduit does not ship aria2c. Integration tests need one. On Linux, `sudo apt install aria2` provides it. On Windows, `make test-all` fetches the pinned copy into `.cache/aria2/`. Set `CONDUIT_ARIA2C` to use another binary.

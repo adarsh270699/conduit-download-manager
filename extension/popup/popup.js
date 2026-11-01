@@ -469,8 +469,7 @@
   const themeBtn = document.getElementById('theme-btn');
   if (themeBtn) {
     themeBtn.addEventListener('click', async () => {
-      ConduitTheme.save(ConduitTheme.next(ConduitTheme.read()));
-      ConduitTheme.paintButton(themeBtn);
+      ConduitTheme.change(ConduitTheme.next(ConduitTheme.read()), () => ConduitTheme.paintButton(themeBtn));
       await ConduitTheme.flush();
       ConduitTheme.paintButton(themeBtn);
     });

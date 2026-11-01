@@ -130,7 +130,7 @@ try {
         if (Test-Path $candidate) {
             $Wails = $candidate
         } else {
-            Fail "wails was not found. Run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0"
+            Fail "wails was not found. Run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0"
         }
     }
 

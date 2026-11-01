@@ -34,17 +34,18 @@
 
     <section id="stepExtension" class="setup-card hidden" aria-labelledby="extensionTitle">
       <p class="setup-step">Step 2 of 2</p>
-      <h1 id="extensionTitle">Catch downloads from the browser</h1>
+      <h1 id="extensionTitle" tabindex="-1">Catch downloads from the browser</h1>
       <p class="setup-copy">Conduit catches browser downloads only after you add the extension. Links you paste into Conduit work without it.</p>
       <div class="setup-actions">
         <button id="openGuideBtn" class="btn btn-primary" type="button">Open extension guide</button>
         <button id="skipBtn" class="btn btn-secondary" type="button">Skip for now</button>
       </div>
-      <button id="continueBtn" class="btn btn-primary hidden" type="button">Continue to downloads</button>
+      <button id="continueBtn" class="btn btn-primary hidden setup-reveal" type="button">Continue to downloads</button>
     </section>
 
     <p id="setupError" class="setup-error" role="alert"></p>
   </main>
+  <script src="/motion.js"></script>
   <script src="/setup.js"></script>
 </body>
 </html>

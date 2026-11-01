@@ -32,7 +32,7 @@ die() {
 [[ "$(uname -s)" == "Linux" ]] || die "This script builds the Linux app and must run on Linux."
 [[ -f "$DESKTOP_DIR/wails.json" ]] || die "Run this script from a Conduit checkout."
 command -v go >/dev/null 2>&1 || die "go was not found on PATH. Install Go 1.27.2+."
-command -v wails >/dev/null 2>&1 || die "wails was not found. Run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0"
+command -v wails >/dev/null 2>&1 || die "wails was not found. Run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0"
 command -v install >/dev/null 2>&1 || die "install (coreutils) was not found."
 
 # Wails links GTK and WebKitGTK through cgo, so check for them up front
