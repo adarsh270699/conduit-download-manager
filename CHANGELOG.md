@@ -4,6 +4,14 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+### Changed
+
+- The desktop app icon is the yellow and black tile, with rounded corners. The tray, the Windows program and installer, and the Ubuntu package all use it.
+
+### Fixed
+
+- The Ubuntu package icon was a placeholder. It now shows the Conduit icon.
+
 ## [1.2.1] - 2026-11-02
 
 ### Changed
