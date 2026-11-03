@@ -4,6 +4,16 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-11-03
+
+### Changed
+
+- The desktop app icon is the yellow and black tile, with rounded corners. The tray, the Windows program and installer, and the Ubuntu package all use it.
+
+### Fixed
+
+- The Ubuntu package icon was a placeholder. It now shows the Conduit icon.
+
 ## [1.2.1] - 2026-11-02
 
 ### Changed
@@ -75,7 +85,8 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 - Download URLs are limited to HTTP, HTTPS, and FTP.
 - The internal aria2 RPC port uses a per-launch random secret and checks engine ownership before use.
 
-[Unreleased]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.1.0...v1.1.1

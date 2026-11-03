@@ -214,11 +214,11 @@ Flat. The system uses no box shadows. Depth comes from changes of ground (board 
 
 ## Shapes
 
-Square corners everywhere: buttons, tabs, panels, inputs, progress rules, and dialogs use 0px radius. The one exception is the connection state pill in the top bar, which is fully rounded and marks a live status, not a control.
+Square corners everywhere: buttons, tabs, panels, inputs, progress rules, and dialogs use 0px radius. Two things are rounded: the connection state pill in the top bar, which is fully rounded and marks a live status, not a control, and the desktop app icon tile, which has a 20% corner radius.
 
 The brand mark is an SVG converging-halves symbol in signal yellow and ink.
 
-The app icon is the same symbol on a tile: a white tile with ink (the yellow and white icon) or a black tile with off-white (the yellow and black icon), both with signal yellow. The dashboard tab icon follows the theme choice. The extension and desktop icon files are the white tile, since they cannot follow a choice.
+The app icon is the same symbol on a tile: a white tile with ink (the yellow and white icon) or a black tile with off-white (the yellow and black icon), both with signal yellow. The dashboard tab icon follows the theme choice. The desktop icon files (Windows and Linux) are the yellow and black icon with the 20% corner radius, so they match everywhere. The extension icon files stay the white tile, since they cannot follow a choice.
 
 ## Components
 
