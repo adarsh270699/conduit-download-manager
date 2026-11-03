@@ -99,7 +99,7 @@ The extension uses `http://127.0.0.1:18800` and expects the daemon's default HTT
 
 ## API
 
-The daemon listens on `127.0.0.1:18800` only. Requests from browsers must carry an allowed `Origin`: a loopback dashboard origin, the Wails desktop asset origin, or a browser-extension origin (the Chrome ID derived from the pinned manifest key, or a Firefox `moz-extension://` origin). Unknown website origins are rejected with `403`; requests without an `Origin` header (curl, local tools) are allowed.
+The daemon listens on `127.0.0.1:18800` only. Requests must name a loopback host, and requests from browsers must carry an allowed `Origin`: the dashboard on Conduit's own port, or the Chrome extension ID derived from the pinned manifest key. Firefox `moz-extension://` origins can only do what the extension does, because Firefox gives each install a random ID. Other origins, including pages from other local web servers, are rejected with `403`; requests without an `Origin` header (curl, local tools) are allowed.
 
 | Method | Path | Description |
 | :--- | :--- | :--- |
@@ -146,7 +146,7 @@ curl -s -X POST http://127.0.0.1:18800/api/downloads \
 
 ### Prerequisites
 
-- **Go 1.27.2+**
+- **Go 1.27.3+**
 - **Wails CLI v2.17.0** for the native window: `go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0`
 - **Node.js 20+** for the extension tests
 - **make**, **zip**, **unzip**, and **curl** for the Makefile targets (Git Bash or MSYS2 on Windows; Windows uses the PowerShell downloader); the quick build scripts do not need make or zip
@@ -273,7 +273,7 @@ Conduit is a local application. The API has no remote authentication and is deli
 - Browser origins are checked before API handlers run, which blocks cross-site POSTs (CSRF), not just cross-origin response reads.
 - Download URLs are validated server-side to HTTP, HTTPS, and FTP.
 - The internal aria2 RPC port uses a per-launch random secret and verifies engine ownership before use.
-- The extension merges cookies from the initiating and final URLs for redirect-based download gateways; cookies for the initiating host are therefore presented to the final host. Use per-site exclusions if that is not acceptable.
+- A download sends only the cookies its final host would get in the browser. A download gateway that needs the first site's cookies on the final host will not work through Conduit. Exclude that site, and the browser keeps its downloads.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#security-model) for the full threat model and [CONTRIBUTING.md](CONTRIBUTING.md) for development practices.
 

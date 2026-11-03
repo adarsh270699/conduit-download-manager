@@ -14,13 +14,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return isOriginAllowed(r.Header.Get("Origin"))
-	},
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
+// wsReadLimit is small because clients send nothing but control frames.
+const wsReadLimit = 1024
 
 // WSMessage is one frame on /api/ws. Type says which field is set:
 // "downloads" carries the full list, "config" carries the current settings,
@@ -197,6 +192,13 @@ func (h *WSHub) closeAll() {
 }
 
 func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return classifyOrigin(s.port, r.Header.Get("Origin")) == originTrusted
+		},
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade error: %v", err)
@@ -223,6 +225,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// The read loop only detects disconnects; clients never send data.
+	conn.SetReadLimit(wsReadLimit)
 	go func() {
 		defer s.wsHub.remove(conn)
 		for {

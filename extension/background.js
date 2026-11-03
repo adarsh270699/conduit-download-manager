@@ -46,7 +46,7 @@ function isInterceptable(item, interceptionEnabled = true, bypassSet = bypassedD
   if (bypassSet.has(item.id)) return false;
 
   // Filter out downloads from excluded domains
-  if (isDomainExcluded(item.url, excludedDomains)) {
+  if (isDomainExcluded(item.url, excludedDomains) || isDomainExcluded(item.finalUrl, excludedDomains)) {
     return false;
   }
 
@@ -109,36 +109,18 @@ function formatCookiesHeader(cookies) {
 }
 
 /**
- * Extracts and merges cookies for target and original URLs.
- * Preserves cross-domain session state across 302/307 redirects.
+ * Reads the cookies the browser itself would send to a URL. Cookies from the page or from an earlier redirect stay
+ * out: the host that receives this download may be anyone, and these include HttpOnly session cookies.
  * @param {string} targetUrl
- * @param {string} originalUrl
  * @returns {Promise<string>}
  */
-async function extractMergedCookies(targetUrl, originalUrl = '') {
+async function extractCookies(targetUrl) {
   if (typeof chrome === 'undefined' || !chrome.cookies || !chrome.cookies.getAll) {
     return '';
   }
   try {
-    const primary = targetUrl ? await chrome.cookies.getAll({ url: targetUrl }) : [];
-    const cookieMap = new Map();
-    (primary || []).forEach((c) => {
-      if (c && c.name) cookieMap.set(c.name, c.value);
-    });
-
-    if (originalUrl && originalUrl !== targetUrl) {
-      try {
-        const secondary = await chrome.cookies.getAll({ url: originalUrl });
-        (secondary || []).forEach((c) => {
-          if (c && c.name && !cookieMap.has(c.name)) {
-            cookieMap.set(c.name, c.value);
-          }
-        });
-      } catch (_) {}
-    }
-
-    const merged = Array.from(cookieMap.entries()).map(([name, value]) => ({ name, value }));
-    return formatCookiesHeader(merged);
+    const cookies = targetUrl ? await chrome.cookies.getAll({ url: targetUrl }) : [];
+    return formatCookiesHeader((cookies || []).filter((c) => c && c.name));
   } catch (_) {
     return '';
   }
@@ -152,9 +134,8 @@ async function extractMergedCookies(targetUrl, originalUrl = '') {
  */
 function extractFilename(item) {
   if (item && item.filename && typeof item.filename === 'string') {
-    const clean = item.filename.replace(/\\/g, '/');
-    const base = clean.split('/').pop();
-    if (base && base.trim().length > 0) return base.trim();
+    const base = safeBaseName(item.filename);
+    if (base) return base;
   }
 
   const candidateUrl = (item && (item.finalUrl || item.url)) || '';
@@ -163,11 +144,23 @@ function extractFilename(item) {
     const pathname = parsed.pathname;
     const base = pathname.split('/').pop();
     if (base && base.trim().length > 0) {
-      return decodeURIComponent(base.trim());
+      const decoded = safeBaseName(decodeURIComponent(base.trim()));
+      if (decoded) return decoded;
     }
   } catch (_) {}
 
   return 'download';
+}
+
+/**
+ * Reduces a name to one path segment with no control or reserved characters. A link can encode a line break or a
+ * slash, and the browser's own name for a file can still hold characters that are reserved on another platform.
+ * @param {string} name
+ * @returns {string}
+ */
+function safeBaseName(name) {
+  const base = name.replace(/\\/g, '/').split('/').pop();
+  return base.replace(/[\x00-\x1f\x7f<>:"|?*]/g, '_').trim();
 }
 
 /**
@@ -320,7 +313,12 @@ async function handleDeterminingFilename(item, suggest) {
 async function handleManualDownload(targetUrl, referrer = '') {
   if (!targetUrl) return { success: false, reason: 'No URL provided' };
 
-  const cookieString = await extractMergedCookies(targetUrl, referrer);
+  // A right-click on an excluded site still downloads, because the user asked for it, but sends no cookies.
+  const stored = typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local
+    ? await chrome.storage.local.get(['excludedDomains'])
+    : {};
+  const excluded = isDomainExcluded(targetUrl, stored.excludedDomains);
+  const cookieString = excluded ? '' : await extractCookies(targetUrl);
   const filename = extractFilename({ url: targetUrl });
   const payload = {
     url: targetUrl,
@@ -350,7 +348,7 @@ async function handleManualDownload(targetUrl, referrer = '') {
       url: targetUrl,
       filename: filename,
       referrer: referrer || '',
-      cookies: cookieString,
+      noCookies: excluded,
       userAgent: payload.userAgent,
       fileSize: 0,
       timestamp
@@ -590,7 +588,7 @@ async function processDownloadInterception(item, suggest = null) {
     const targetUrl = item.finalUrl || item.url;
     const originalUrl = item.url || '';
     const filename = extractFilename(item);
-    const cookieString = await extractMergedCookies(targetUrl, originalUrl);
+    const cookieString = await extractCookies(targetUrl);
     const referrer = item.referrer || (originalUrl && originalUrl !== targetUrl ? originalUrl : '');
 
     const payload = {
@@ -650,7 +648,6 @@ async function processDownloadInterception(item, suggest = null) {
       url: targetUrl,
       filename: filename,
       referrer: referrer,
-      cookies: cookieString,
       userAgent: payload.userAgent,
       fileSize: item.totalBytes || 0,
       timestamp: Date.now()
@@ -764,7 +761,8 @@ async function flushHeldQueueOnce() {
       filename: job.filename,
       referrer: job.referrer || '',
       userAgent: job.userAgent || '',
-      cookies: job.cookies || ''
+      // Read now, not stored with the job, so session cookies do not sit in extension storage.
+      cookies: job.noCookies ? '' : await extractCookies(job.url)
     };
 
     const gid = await dispatchToDaemon(payload);
@@ -1145,7 +1143,7 @@ if (typeof module !== 'undefined' && module.exports) {
     isInterceptable,
     isDomainExcluded,
     formatCookiesHeader,
-    extractMergedCookies,
+    extractCookies,
     extractFilename,
     checkDaemonHealth,
     dispatchToDaemon,

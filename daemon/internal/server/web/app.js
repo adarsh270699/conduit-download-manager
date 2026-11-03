@@ -81,6 +81,13 @@
     moveFolderForm: document.getElementById('moveFolderForm'),
     moveTargetName: document.getElementById('moveTargetName'),
     moveTargetDir: document.getElementById('moveTargetDir'),
+    // Open Program Confirmation Modal
+    openFileModal: document.getElementById('openFileModal'),
+    closeOpenFileModalBtn: document.getElementById('closeOpenFileModalBtn'),
+    cancelOpenFileBtn: document.getElementById('cancelOpenFileBtn'),
+    confirmOpenFileBtn: document.getElementById('confirmOpenFileBtn'),
+    openFileTargetName: document.getElementById('openFileTargetName'),
+
     // Delete Confirmation Modal
     deleteModal: document.getElementById('deleteModal'),
     closeDeleteModalBtn: document.getElementById('closeDeleteModalBtn'),
@@ -207,6 +214,9 @@
       if (elements.addDownloadForm) elements.addDownloadForm.reset();
       clearUrlError();
     },
+    openFileModal: function () {
+      pendingOpenGid = null;
+    },
     deleteModal: function () {
       pendingDeleteGid = null;
     },
@@ -295,7 +305,7 @@
   }
 
   // Every layer gets Tab trapping, and a backdrop click closes only itself.
-  ['addModal', 'deleteModal', 'clearModal', 'moveModal', 'settingsDrawer'].forEach(id => {
+  ['addModal', 'openFileModal', 'deleteModal', 'clearModal', 'moveModal', 'settingsDrawer'].forEach(id => {
     const layer = document.getElementById(id);
     if (!layer) return;
     layer.addEventListener('keydown', (e) => trapTab(e, layer));
@@ -1395,13 +1405,13 @@
   }
 
   // 3. User Actions & Handlers
-  async function performAction(gid, action, triggerBtn) {
+  async function performAction(gid, action, triggerBtn, extra) {
     if (triggerBtn) triggerBtn.disabled = true;
     try {
       const res = await fetch(`/api/downloads/${encodeURIComponent(gid)}/action`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: action })
+        body: JSON.stringify({ action: action, ...extra })
       });
       if (res.ok) {
         const actionLabels = {
@@ -1415,7 +1425,11 @@
         if (!state.isWebSocket) fetchDownloads();
       } else {
         const err = await res.json().catch(() => ({}));
-        showToast(err.error || 'The engine could not complete this action.', 'error');
+        if (err.code === 'confirm_launch') {
+          openOpenFileModal(gid);
+        } else {
+          showToast(err.error || 'The engine could not complete this action.', 'error');
+        }
       }
     } catch (e) {
       console.error('Download action failed:', e);
@@ -1479,6 +1493,38 @@
     } finally {
       if (triggerBtn) triggerBtn.disabled = false;
     }
+  }
+
+  // Open Program Confirmation Modal Handling. The daemon decides which files need it.
+  let pendingOpenGid = null;
+
+  function openOpenFileModal(gid) {
+    lastActiveElement = document.activeElement;
+    const item = state.downloads.find(d => d.gid === gid);
+    pendingOpenGid = gid;
+    if (elements.openFileTargetName) {
+      elements.openFileTargetName.textContent = item ? (item.filename || gid) : gid;
+    }
+    openLayer(elements.openFileModal, elements.cancelOpenFileBtn);
+  }
+
+  function closeOpenFileModal() {
+    closeLayer(elements.openFileModal);
+  }
+
+  if (elements.closeOpenFileModalBtn) {
+    elements.closeOpenFileModalBtn.addEventListener('click', closeOpenFileModal);
+  }
+  if (elements.cancelOpenFileBtn) {
+    elements.cancelOpenFileBtn.addEventListener('click', closeOpenFileModal);
+  }
+  if (elements.confirmOpenFileBtn) {
+    elements.confirmOpenFileBtn.addEventListener('click', () => {
+      if (!pendingOpenGid) return;
+      const gid = pendingOpenGid;
+      closeOpenFileModal();
+      performAction(gid, 'open_file', null, { confirmed: true });
+    });
   }
 
   // Delete Confirmation Modal Handling

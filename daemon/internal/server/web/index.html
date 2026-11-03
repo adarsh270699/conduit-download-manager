@@ -6,18 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#F3F3EF">
   <link id="appIcon" rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <script>
-    // Paint the saved colour scheme and tab icon before the first frame. The daemon's setting replaces them once loaded.
-    try {
-      var savedTheme = localStorage.getItem('conduit-theme');
-      if (savedTheme === 'light' || savedTheme === 'dark') {
-        document.documentElement.dataset.theme = savedTheme;
-        document.getElementById('appIcon').href = '/favicon-' + savedTheme + '.svg';
-      }
-    } catch (e) {
-      // Storage may be refused; the page then follows the system.
-    }
-  </script>
+  <script src="/theme-boot.js"></script>
   <title>Conduit - Download Manager</title>
   <link rel="alternate icon" href="/favicon.ico">
   <link rel="preload" href="/fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -40,11 +29,7 @@
           <span class="status-dot" aria-hidden="true"></span>
           <span class="status-text" id="connectionStatusText">Connecting</span>
         </div>
-        <script>
-          if (new URLSearchParams(location.search).get('shell') === 'app') {
-            document.getElementById('connectionStatusText').textContent = 'Starting';
-          }
-        </script>
+        <script src="/shell-status.js"></script>
       </div>
 
       <!-- Header Actions -->
@@ -250,6 +235,28 @@
   </div>
 
   <!-- Delete Confirmation Modal Dialog -->
+  <div id="openFileModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="openFileModalTitle">
+    <div class="modal-box modal-box-sm">
+      <div class="modal-header">
+        <h2 id="openFileModalTitle">Open this file?</h2>
+        <button id="closeOpenFileModalBtn" class="close-btn" aria-label="Close dialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="delete-warning"><strong id="openFileTargetName">filename</strong> runs as a program on this computer.</p>
+        <p class="form-hint">Open it only if you trust where it came from.</p>
+      </div>
+      <div class="modal-footer modal-footer-bordered">
+        <button type="button" id="cancelOpenFileBtn" class="btn btn-secondary">Cancel</button>
+        <button type="button" id="confirmOpenFileBtn" class="btn btn-danger">Open file</button>
+      </div>
+    </div>
+  </div>
+
   <div id="deleteModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
     <div class="modal-box modal-box-sm">
       <div class="modal-header">

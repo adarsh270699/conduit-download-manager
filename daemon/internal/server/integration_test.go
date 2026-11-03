@@ -131,7 +131,7 @@ func TestLiveServerRESTIntegration(t *testing.T) {
 	// 4c. Connect live WebSocket client
 	wsURL := fmt.Sprintf("ws://127.0.0.1:%d/api/ws", httpPort)
 	wsHeader := http.Header{}
-	wsHeader.Set("Origin", "http://127.0.0.1:18800")
+	wsHeader.Set("Origin", baseURL)
 	wsConn, _, err := websocket.DefaultDialer.Dial(wsURL, wsHeader)
 	if err != nil {
 		t.Fatalf("live WebSocket connection failed: %v", err)

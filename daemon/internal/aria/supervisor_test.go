@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -152,6 +153,16 @@ func TestSupervisorBuildArgs(t *testing.T) {
 		t.Fatalf("failed to create supervisor: %v", err)
 	}
 	args := sup.buildArgs("/tmp/aria2.session")
+	for _, arg := range args {
+		// With --continue, aria2 overwrites any smaller file of the same name.
+		if strings.HasPrefix(arg, "--continue") {
+			t.Fatalf("aria2 must not get %s", arg)
+		}
+		// Other users of the machine can read a command line.
+		if strings.Contains(arg, sup.RPCSecret()) {
+			t.Fatalf("the RPC secret is on the command line: %s", arg)
+		}
+	}
 	foundContentDisp := false
 	foundStopWithProcess := false
 	for _, arg := range args {

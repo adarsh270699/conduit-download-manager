@@ -4,7 +4,7 @@
     Quick Windows build for Conduit: native app, license bundle, extension zip, and NSIS installer.
 
 .DESCRIPTION
-    Requires Go (the module pins 1.27.2; GOTOOLCHAIN=auto can fetch it), the
+    Requires Go (the module pins 1.27.3; GOTOOLCHAIN=auto can fetch it), the
     Wails v2 CLI, and NSIS 3. Zip files are built with .NET so Windows
     Explorer can open them. Do not use tar -a on '.' — that stores ./
     prefixes and Explorer shows the archive as empty.
@@ -119,7 +119,7 @@ try {
     }
 
     if (-not (Get-Command go -ErrorAction SilentlyContinue)) {
-        Fail "go was not found on PATH. Install Go 1.27.2+ and reopen the terminal."
+        Fail "go was not found on PATH. Install Go 1.27.3+ and reopen the terminal."
     }
 
     $wailsCommand = Get-Command wails -ErrorAction SilentlyContinue

@@ -52,6 +52,8 @@ type DownloadActionRequest struct {
 	Action     string `json:"action"` // pause, resume, remove, open_folder, open_file, retry, change_dir, move_up, move_down
 	DeleteFile bool   `json:"deleteFile,omitempty"`
 	NewDir     string `json:"newDir,omitempty"`
+	// Confirmed says the user agreed to open a file that runs code.
+	Confirmed bool `json:"confirmed,omitempty"`
 }
 
 // validateDownloadURL accepts the protocols supported by Conduit v1. Keeping
@@ -96,29 +98,31 @@ func (s *Server) handleCreateDownload(w http.ResponseWriter, r *http.Request) {
 
 	opts := &aria.DownloadOptions{}
 	if req.Filename != "" {
-		cleanName := filepath.Base(filepath.Clean(req.Filename))
-		if cleanName == "." || cleanName == "/" || cleanName == "\\" || strings.Contains(req.Filename, "..") {
-			writeError(w, http.StatusBadRequest, "invalid filename: path traversal not permitted")
+		cleanName, err := validFilename(req.Filename)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		if cleanName != "" && cleanName != "download" {
-			opts.Out = cleanName
-		}
+		opts.Out = cleanName
 	}
 
 	if s.configMgr != nil {
 		opts.Dir = s.configMgr.Get().DownloadDir
 	}
 
-	var headers []string
-	if req.Cookies != "" {
-		headers = append(headers, "Cookie: "+req.Cookies)
+	if hasControlChars(req.Cookies) || hasControlChars(req.Referrer) || hasControlChars(req.UserAgent) {
+		writeError(w, http.StatusBadRequest, "cookies, referrer, and userAgent must not contain control characters")
+		return
 	}
+	var headers []string
 	if req.Referrer != "" {
 		headers = append(headers, "Referer: "+req.Referrer)
 	}
 	if req.UserAgent != "" {
 		headers = append(headers, "User-Agent: "+req.UserAgent)
+	}
+	if req.Cookies != "" {
+		headers = s.scopeCookies(r.Context(), &req, headers)
 	}
 	opts.Headers = headers
 
@@ -132,6 +136,22 @@ func (s *Server) handleCreateDownload(w http.ResponseWriter, r *http.Request) {
 		"gid": gid,
 	})
 	go s.wsHub.BroadcastAll(context.Background())
+}
+
+// scopeCookies adds the Cookie header when the download stays on the host the
+// cookies belong to. It can move req.URL to a redirect target that needs none.
+func (s *Server) scopeCookies(ctx context.Context, req *CreateDownloadRequest, headers []string) []string {
+	lower := strings.ToLower(req.URL)
+	if !strings.HasPrefix(lower, "http://") && !strings.HasPrefix(lower, "https://") {
+		return headers
+	}
+	withCookie := append(headers[:len(headers):len(headers)], "Cookie: "+req.Cookies)
+	target, keep := resolveCookieScope(ctx, req.URL, withCookie)
+	req.URL = target
+	if keep {
+		return withCookie
+	}
+	return headers
 }
 
 func (s *Server) handleListDownloads(w http.ResponseWriter, r *http.Request) {
@@ -310,9 +330,13 @@ func (s *Server) handleDownloadAction(w http.ResponseWriter, r *http.Request) {
 		actionErr = openFolder(targetPath)
 	case "open_file":
 		changesList = false
-		actionErr = s.openCompletedFile(ctx, gid)
+		actionErr = s.openCompletedFile(ctx, gid, req.Confirmed)
 		if errors.Is(actionErr, errFileUnavailable) {
 			writeError(w, http.StatusBadRequest, actionErr.Error())
+			return
+		}
+		if errors.Is(actionErr, errConfirmLaunch) {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": actionErr.Error(), "code": "confirm_launch"})
 			return
 		}
 	case "move_up", "move_down":
@@ -328,6 +352,10 @@ func (s *Server) handleDownloadAction(w http.ResponseWriter, r *http.Request) {
 	case "change_dir":
 		if strings.TrimSpace(req.NewDir) == "" {
 			writeError(w, http.StatusBadRequest, "newDir is required for change_dir")
+			return
+		}
+		if hasControlChars(req.NewDir) {
+			writeError(w, http.StatusBadRequest, "newDir must not contain control characters")
 			return
 		}
 		actionErr = s.moveDownloadFolder(ctx, gid, req.NewDir)
@@ -349,12 +377,15 @@ func (s *Server) handleDownloadAction(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-var errFileUnavailable = errors.New("file is not available")
+var (
+	errFileUnavailable = errors.New("file is not available")
+	errConfirmLaunch   = errors.New("this file runs code when opened; confirm before opening it")
+)
 
 // openCompletedFile launches a finished download. The path comes from the
 // engine, never from the request, and only a complete file that still exists
-// on disk is opened.
-func (s *Server) openCompletedFile(ctx context.Context, gid string) error {
+// on disk is opened. A file that runs code needs the user's confirmation.
+func (s *Server) openCompletedFile(ctx context.Context, gid string, confirmed bool) error {
 	status, err := s.rpcClient.TellStatus(ctx, gid)
 	if err != nil || status == nil || status.Status != "complete" ||
 		len(status.Files) == 0 || status.Files[0].Path == "" {
@@ -364,6 +395,10 @@ func (s *Server) openCompletedFile(ctx context.Context, gid string) error {
 	if fi, err := os.Stat(path); err != nil || fi.IsDir() {
 		return errFileUnavailable
 	}
+	if isLaunchable(path) && !confirmed {
+		return errConfirmLaunch
+	}
+	s.markCompleted(*status)
 	return openFile(path)
 }
 

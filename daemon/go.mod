@@ -1,6 +1,6 @@
 module conduit/daemon
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/emersion/go-autostart v0.0.0-20250403115856-34830d6457d2

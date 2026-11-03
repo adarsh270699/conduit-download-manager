@@ -20,7 +20,7 @@ func StopManagedEngines(configDir string) error {
 // deletes config.json or aria2.session.
 func RemoveManagedEngineFiles(configDir string) error {
 	var errs []error
-	for _, name := range []string{"engine.json", "engine.json.tmp"} {
+	for _, name := range []string{"engine.json", "engine.json.tmp", engineConfName} {
 		path := filepath.Join(configDir, name)
 		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 			errs = append(errs, err)
