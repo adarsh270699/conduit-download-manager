@@ -208,6 +208,14 @@ func (s *Supervisor) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to create download directory: %w", err)
 	}
 
+	confPath, err := s.writeEngineConf()
+	if err != nil {
+		s.setPhase("offline")
+		return fmt.Errorf("failed to write engine settings: %w", err)
+	}
+	// aria2 reads the file once at startup, and engine.json keeps the secret.
+	defer os.Remove(confPath)
+
 	args := s.buildArgs(sessionPath)
 
 	cmd := exec.Command(binPath, args...)
@@ -261,12 +269,36 @@ func (s *Supervisor) Start(ctx context.Context) error {
 	return nil
 }
 
+// engineConfName holds the RPC secret while aria2 starts. A command line is
+// visible to other users of the machine; this file is not.
+const engineConfName = "aria2.conf"
+
+func (s *Supervisor) engineConfPath() string {
+	return filepath.Join(s.cfg.ConfigDir, engineConfName)
+}
+
+func (s *Supervisor) writeEngineConf() (string, error) {
+	path := s.engineConfPath()
+	if err := os.WriteFile(path, []byte("rpc-secret="+s.cfg.RPCSecret+"\n"), 0o600); err != nil {
+		return "", err
+	}
+	// WriteFile keeps the mode of a file left behind by a crash.
+	if err := os.Chmod(path, 0o600); err != nil {
+		_ = os.Remove(path)
+		return "", err
+	}
+	return path, nil
+}
+
+// buildArgs leaves out --continue. With it, aria2 treats any existing file of the
+// same name as a partial download and overwrites it. Real partial downloads have
+// a .aria2 control file, and aria2 resumes those without it.
 func (s *Supervisor) buildArgs(sessionPath string) []string {
 	return []string{
 		"--enable-rpc=true",
 		"--rpc-listen-all=false",
 		fmt.Sprintf("--rpc-listen-port=%d", s.cfg.RPCPort),
-		fmt.Sprintf("--rpc-secret=%s", s.cfg.RPCSecret),
+		fmt.Sprintf("--conf-path=%s", s.engineConfPath()),
 		fmt.Sprintf("--stop-with-process=%d", os.Getpid()),
 		fmt.Sprintf("--dir=%s", s.cfg.DownloadDir),
 		fmt.Sprintf("--input-file=%s", sessionPath),
@@ -275,7 +307,6 @@ func (s *Supervisor) buildArgs(sessionPath string) []string {
 		fmt.Sprintf("--max-connection-per-server=%d", s.cfg.MaxConnection),
 		fmt.Sprintf("--split=%d", s.cfg.Split),
 		fmt.Sprintf("--min-split-size=%s", s.cfg.MinSplitSize),
-		"--continue=true",
 		"--auto-file-renaming=true",
 		"--allow-overwrite=false",
 		fmt.Sprintf("--file-allocation=%s", getFileAllocationMethod()),

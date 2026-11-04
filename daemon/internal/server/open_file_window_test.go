@@ -43,7 +43,7 @@ func TestOpenFileLaunchesOnlyCompleteExistingFiles(t *testing.T) {
 		{GID: "failed", Status: "error", Files: []aria.FileInfo{{Path: file}}},
 	}
 
-	if rec := postAction(t, srv, "done", `{"action":"open_file"}`); rec.Code != http.StatusOK {
+	if rec := postAction(t, srv, "done", `{"action":"open_file","confirmed":true}`); rec.Code != http.StatusOK {
 		t.Fatalf("complete file: got %d: %s", rec.Code, rec.Body.String())
 	}
 	if opened != file {

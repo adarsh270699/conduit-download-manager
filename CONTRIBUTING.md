@@ -4,7 +4,7 @@ Thanks for helping improve Conduit. This guide covers the local workflow, the qu
 
 ## Before you start
 
-- **Go 1.27.2+** for the daemon.
+- **Go 1.27.3+** for the daemon.
 - **Node.js 20+** for the extension test suite.
 - **make**, **zip**, **unzip**, and **curl** with a POSIX shell (Git Bash or MSYS2 on Windows); the quick build scripts do not need make or zip.
 - Optional but needed for the native window:

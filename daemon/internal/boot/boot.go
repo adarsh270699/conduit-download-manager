@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -88,6 +89,7 @@ func Start(ctx context.Context, opts Options) (*Running, error) {
 	}()
 
 	removeStaleConfigTemps(configDir)
+	restrictConfigDir(configDir)
 
 	autostartMgr, err := config.NewAppAutostart("")
 	if err != nil {
@@ -168,6 +170,18 @@ func Start(ctx context.Context, opts Options) (*Running, error) {
 	lockHeld = false
 	log.Printf("Conduit REST API online at http://127.0.0.1:%d/api/health", srv.Port())
 	return running, nil
+}
+
+// restrictConfigDir keeps the folder private to this user. aria2 saves its
+// session, which holds download cookies, by replacing the file, so the file's own
+// mode does not last. Windows already limits %AppData% to the user.
+func restrictConfigDir(dir string) {
+	if runtime.GOOS == "windows" {
+		return
+	}
+	if err := os.Chmod(dir, 0o700); err != nil {
+		log.Printf("Warning: could not restrict the config directory: %v", err)
+	}
 }
 
 // startEngine launches aria2 and applies the saved settings to it.

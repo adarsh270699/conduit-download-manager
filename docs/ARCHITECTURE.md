@@ -83,7 +83,7 @@ The login autostart entry runs `Conduit --background`. That starts the window hi
 | Autostart entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` value `Conduit` = `"<exe>" --background` | `~/.config/autostart/conduit.desktop` (`Exec=<exe> --background`) |
 | Extension state | `chrome.storage.local` | `chrome.storage.local` |
 
-The extension stores `heldQueue` (paused jobs and their session context), `bypassedIds` (downloads the user resumed in the browser), `interceptionEnabled`, and `excludedDomains`.
+The extension stores `heldQueue` (paused jobs; their cookies are read when a job is sent, not stored), `bypassedIds` (downloads the user resumed in the browser), `interceptionEnabled`, and `excludedDomains`.
 
 Files inside the config directory:
 
@@ -93,6 +93,7 @@ Files inside the config directory:
 | `aria2.session` | aria2's paused/waiting session, preserved across restarts. |
 | `engine.json` | PID, process creation time, boot ID, binary path, RPC port/secret, start time. Used to stop an engine that survived a crash. Mode `0600`. |
 | `instance.lock` | OS file lock that guarantees one daemon per config directory. |
+| `aria2.conf` | Holds the RPC secret while aria2 starts, then removed. Mode `0600`. |
 | `update.json` | Update check state: last check time, latest version, and the downloaded installer's path and SHA-256. Written atomically through a temporary file. The updater never writes `config.json` or `aria2.session`. |
 | `updates/<version>/` | Installers downloaded by the updater. Keep-mode uninstall removes them; purge removes everything. |
 | `bin/aria2c` or `bin/aria2c.exe` | Optional. An engine placed by hand. Conduit never writes here. |
@@ -114,20 +115,19 @@ Files inside the config directory:
 | `showOnError` | bool | Default `true`. Shows the window when a download fails. |
 | `autoCheckUpdates` | bool | Default `false`. Checks GitHub for a newer release about once a day and tells open dashboards when one is found. A failed check is retried after an hour. |
 | `autoInstallUpdates` | bool | Default `false`. Downloads and installs a found release without asking. Implies `autoCheckUpdates`. Installs only from a copy that the Windows setup or the `.deb` installed, and waits while downloads are running. |
-| `enginePath` | string, omitted | Optional. Must be an absolute path to `aria2c`. The search order is in [Build and Packaging](#build-and-packaging). |
+| `enginePath` | string, omitted | Optional. Must be an absolute path to `aria2c`. Set only by editing `config.json`: `PUT /api/config` answers `400` to a changed value. The search order is in [Build and Packaging](#build-and-packaging). |
 
 `PUT /api/config` merges the fields in the body into the current settings (absent fields keep their value), persists them, applies them to the live engine with `aria2.changeGlobalOption`, updates the OS autostart registration when that flag changes, and pushes the result to every WebSocket client. A failure to apply an option to a running engine is logged; the setting is still saved for the next start.
 
 ## REST and WebSocket API
 
-The server binds to `127.0.0.1` only. All API requests from a browser must carry an allowed `Origin`:
+The server binds to `127.0.0.1` only, and a request whose `Host` is not `127.0.0.1`, `localhost`, or `::1` receives `403`, which stops DNS rebinding. All API requests from a browser must carry an allowed `Origin`:
 
-- the dashboard at a loopback origin (`http://127.0.0.1:*` or `http://localhost:*`);
-- the Wails asset origin used by the desktop bootstrap page (`http://wails.localhost` or `wails://…`);
-- the Chrome extension ID derived from the pinned `key` in `extension/manifest.json`;
-- any `moz-extension://` origin, because Firefox assigns a per-profile UUID rather than the Gecko add-on ID (host permissions still gate which extensions can reach the daemon).
+- full access: the dashboard on this daemon's own port (`http://127.0.0.1:<port>` or `http://localhost:<port>`), and the Chrome extension ID derived from the pinned `key` in `extension/manifest.json`;
+- limited access: any `moz-extension://` origin. Firefox assigns each install a random UUID, so the daemon cannot tell Conduit from another add-on, and an extension page needs no host permission to reach a server that answers CORS. These origins can read `/api/health`, `/api/config`, and `/api/downloads`, add a download, `pause`, `resume`, or `remove` one without `deleteFile`, and `PUT /api/config` with only `theme`;
+- health only: the Wails bootstrap page (`http://wails.localhost` or `wails://…`).
 
-Unknown browser origins receive `403` before a handler runs. Requests without an `Origin` header (curl, local tooling, the desktop shell) are allowed; the API has no remote authentication and must not be exposed beyond loopback.
+Other browser origins, and requests an origin may not make, receive `403` before a handler runs. Requests without an `Origin` header (curl, local tooling, the desktop shell) are allowed; the API has no remote authentication and must not be exposed beyond loopback. Request bodies are limited to 1 MiB. Every response carries a Content Security Policy, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: no-referrer`.
 
 | Method | Path | Description |
 | :--- | :--- | :--- |
@@ -137,8 +137,8 @@ Unknown browser origins receive `403` before a handler runs. Requests without an
 | `GET` | `/api/extension` | Loopback only. Returns `{path, exists}` for the installed extension folder. |
 | `POST` | `/api/extension/open-guide` | Loopback only. Opens `/extension` in the system browser. |
 | `GET` | `/api/downloads` | Lists active, waiting, paused, and stopped downloads. |
-| `POST` | `/api/downloads` | Enqueues `{url, filename?, cookies?, referrer?, userAgent?}`. URL schemes are limited to HTTP, HTTPS, and FTP. Returns `201 {gid}`. |
-| `POST` | `/api/downloads/{gid}/action` | Actions: `pause`, `resume`, `retry`, `remove` (`deleteFile: true` also deletes the file), `open_folder`, `open_file`, `change_dir` (`newDir` required), `move_up`, `move_down`. |
+| `POST` | `/api/downloads` | Enqueues `{url, filename?, cookies?, referrer?, userAgent?}`. URL schemes are limited to HTTP, HTTPS, and FTP, and the other fields cannot hold control characters. With `cookies`, the daemon first checks the URL's redirects without following them through aria2: see [Security Model](#security-model). Returns `201 {gid}`. |
+| `POST` | `/api/downloads/{gid}/action` | Actions: `pause`, `resume`, `retry`, `remove` (`deleteFile: true` also deletes the file), `open_folder`, `open_file`, `change_dir` (`newDir` required), `move_up`, `move_down`. `open_file` answers `409` with `code: "confirm_launch"` for a file that runs code, until the request also sends `confirmed: true`. |
 | `GET` | `/api/config` | Returns the current configuration. |
 | `PUT` | `/api/config` | Merges, validates, persists, applies, and broadcasts configuration. |
 | `GET` | `/api/update` | Loopback only. Returns `state` (`idle`, `checking`, `upToDate`, `available`, `downloading`, `downloaded`, `installing`, or `error`), `currentVersion`, `latestVersion`, `progress` (`done` and `total` bytes), `error`, `lastCheckedAt`, and `installable` (whether this copy can install an update). Returns `503` if the update service did not start. |
@@ -160,7 +160,7 @@ Download objects contain `gid`, `filename`, `status`, `totalLength`, `completedL
 2. In Chromium, `onDeterminingFilename` supplies the resolved filename and final URL. Conduit returns `true`, then either dispatches to the daemon or lets Chrome create the browser download.
 3. Settings (`interceptionEnabled`, `excludedDomains`, `bypassedIds`) are read from `chrome.storage.local`.
 4. Non-HTTP(S/FTP), blob/data/filesystem URLs, downloads below 1 MB when the size is known, completed items, and historical items older than two minutes are ignored.
-5. The extension collects cookies for the final and original URL, the referrer, the user agent, and the Content-Disposition filename.
+5. The extension collects cookies for the final URL only, the referrer, the user agent, and the Content-Disposition filename. Filenames lose control and reserved characters.
 6. **Daemon online:** `POST /api/downloads`. On success the browser download is cancelled and erased, and the dashboard owns the transfer.
 7. **Daemon offline:** the browser download is paused and a job is written to `heldQueue`. The action badge shows the count, a notification explains the hold, and a 30-second alarm retries. On Chromium, Conduit must call `suggest()` before it can pause the browser download; if the browser finishes or the user cancels before the pause lands, the browser copy wins and the job is not queued.
 8. **Recovery:** when `/api/health` succeeds, `flushHeldQueue` forwards each job, cancels the browser copy, and clears the queue. Failures stay queued for the next attempt.
@@ -192,9 +192,13 @@ The extension assumes the daemon's default port `18800`. If the daemon is starte
 - The instance lock prevents two daemons from managing the same engine. `engine.json` ties shutdown to a PID, process creation time, executable path, and boot ID.
 - Browser origins are checked before API handlers run. This blocks cross-site POSTs from ordinary websites (CSRF), not just cross-origin response reads.
 - Download URLs are validated server-side to HTTP, HTTPS, or FTP.
-- Filenames are reduced to a base name and traversal attempts are rejected.
+- Filenames are reduced to a base name, and traversal attempts and names Windows would treat as a device or alternate data stream are rejected. Filenames, headers, and folders cannot hold line breaks, because aria2 stores each option on one line of `aria2.session`.
+- aria2 runs without `--continue`, which would overwrite any smaller file of the same name. Partial downloads have a `.aria2` control file and resume without it.
+- The RPC secret reaches aria2 through `aria2.conf`, mode `0600`, which is removed once the engine answers. A command line is visible to other users. On Linux the config directory is `0700`, because aria2 replaces `aria2.session` when it saves.
+- On Windows, finished files get a `Zone.Identifier` stream with `ZoneId=3`, so SmartScreen treats them as downloads. It holds no URL, because a URL can hold a signed token.
 - The API has no user authentication. Any local process can call it. Do not expose port 18800 to a network, container host, or reverse proxy.
-- The extension merges cookies from the initiating and final URLs into one `Cookie` header so redirect-based download gateways keep working. That means cookies for the initiating host are also presented to the final host. Use the per-site exclusion list for domains where this is not acceptable.
+- The extension sends only the cookies the browser would send to the final URL. A gateway that needs the first host's cookies on the final host will not work through Conduit; the popup can resume a held download in the browser, and the per-site exclusion list leaves a site's downloads to the browser.
+- aria2 repeats a custom `Cookie` header on every redirect, so before adding a download with cookies the daemon walks the redirects itself with a one-byte ranged `GET`, for at most 5 seconds. Cookies stay only while every step is on the first host name and does not drop from HTTPS to HTTP. If a redirect leaves, the download starts from that target without cookies. If the check fails, the cookies are dropped. aria2 makes its own requests afterwards, so a server that answers it differently is not covered.
 
 ## Build and Packaging
 

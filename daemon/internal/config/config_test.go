@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -308,6 +309,44 @@ type countingAutostart struct {
 func (c *countingAutostart) Enable() error {
 	c.enables++
 	return c.MockAutostart.Enable()
+}
+
+func TestPatchCannotChangeEnginePath(t *testing.T) {
+	mgr, err := NewManager(filepath.Join(t.TempDir(), "config.json"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	abs, err := filepath.Abs("aria2c")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := json.Marshal(map[string]string{"enginePath": abs})
+	if _, err := mgr.Patch(body); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("err = %v, want ErrInvalid", err)
+	}
+	if got := mgr.Get().EnginePath; got != "" {
+		t.Fatalf("EnginePath = %q", got)
+	}
+
+	// A client that sends back the value it read is not changing anything.
+	cfg := mgr.Get()
+	cfg.EnginePath = abs
+	if _, err := mgr.Update(cfg); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Patch(body); err != nil {
+		t.Fatalf("unchanged enginePath was rejected: %v", err)
+	}
+}
+
+func TestDownloadDirCannotHoldLineBreaks(t *testing.T) {
+	mgr, err := NewManager(filepath.Join(t.TempDir(), "config.json"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := mgr.Patch([]byte(`{"downloadDir":"C:\\x\n all-proxy=evil.test:8080"}`)); !errors.Is(err, ErrInvalid) {
+		t.Fatalf("err = %v, want ErrInvalid", err)
+	}
 }
 
 func TestEnginePathMustBeAbsolute(t *testing.T) {

@@ -1,6 +1,6 @@
 module conduit/desktop
 
-go 1.27.2
+go 1.27.3
 
 require (
 	conduit/daemon v0.0.0

@@ -686,11 +686,44 @@ async function runTests() {
     'Initial URL should be used as referrer for storage proxy tunnel'
   );
   assert.ok(
-    dispatchedPayload.cookies.includes('storage_auth=tunnel_token_222') &&
-    dispatchedPayload.cookies.includes('csrf_token=csrf_secret_111'),
-    'Cookies from both target domain and initiating domain must be merged'
+    dispatchedPayload.cookies.includes('storage_auth=tunnel_token_222'),
+    'The final host must receive its own cookies'
   );
-  console.log('✓ Test 14 Passed: Redirect resolution, cookie merging, and finalUrl capture verified.');
+  assert.ok(
+    !dispatchedPayload.cookies.includes('csrf_token'),
+    'Cookies from the initiating host must not reach the final host'
+  );
+  console.log('✓ Test 14 Passed: Redirect resolution, cookie scoping, and finalUrl capture verified.');
+
+  // Test 14b: A cross-site right-click sends only the link host's cookies
+  console.log('Test 14b: Context menu keeps the page cookies out...');
+  dispatchedPayload = null;
+  await bg.handleManualDownload('https://tunnel5.dlproxy.uk/file.zip', 'https://ankergames.net/page');
+  assert.ok(dispatchedPayload.cookies.includes('storage_auth=tunnel_token_222'));
+  assert.ok(!dispatchedPayload.cookies.includes('csrf_token'), 'Cookies of the page must not reach the link host');
+
+  // An excluded link host downloads without cookies.
+  dispatchedPayload = null;
+  mockStorageData.excludedDomains = ['dlproxy.uk'];
+  await bg.handleManualDownload('https://tunnel5.dlproxy.uk/file.zip', '');
+  delete mockStorageData.excludedDomains;
+  assert.strictEqual(dispatchedPayload.cookies, '', 'An excluded host must get no cookies');
+  console.log('✓ Test 14b Passed.');
+
+  // Test 14c: The exclusion list covers the final URL too
+  console.log('Test 14c: Exclusion list checks finalUrl...');
+  assert.strictEqual(
+    bg.isInterceptable({ id: 1, url: 'https://ok.example/r', finalUrl: 'https://bank.example/f.zip', state: 'in_progress' }, true, new Set(), ['bank.example']),
+    false
+  );
+  console.log('✓ Test 14c Passed.');
+
+  // Test 14d: A crafted link cannot put a line break or a path in the filename
+  console.log('Test 14d: extractFilename removes control and reserved characters...');
+  assert.strictEqual(bg.extractFilename({ url: 'https://evil.example/a.bin%0A%20all-proxy=evil.example:8080' }), 'a.bin_ all-proxy=evil.example_8080');
+  assert.strictEqual(bg.extractFilename({ url: 'https://evil.example/x%2Fy.zip' }), 'y.zip');
+  assert.strictEqual(bg.extractFilename({ filename: 'C:\\Users\\me\\a\tb?.zip' }), 'a_b_.zip');
+  console.log('✓ Test 14d Passed.');
 
   // Test 15: Firefox compatibility fallback (onDeterminingFilename undefined)
   console.log('Test 15: Firefox fallback path when onDeterminingFilename is undefined...');

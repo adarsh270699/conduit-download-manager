@@ -61,6 +61,7 @@ type Server struct {
 	stopSchedule   context.CancelFunc
 	seenMu         sync.Mutex
 	seenStatus     map[string]string // last status per gid, for window pop-ups
+	zoneMarked     sync.Map          // gids already marked as coming from the internet
 }
 
 // NewServer creates a new Server instance.
@@ -103,7 +104,7 @@ func (s *Server) Routes() http.Handler {
 		mux.Handle("GET /", webHandler)
 	}
 
-	return CORSMiddleware(mux)
+	return securityHeaders(s.port, limitBody(CORSMiddleware(s.port, mux)))
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -248,12 +249,13 @@ func (s *Server) Start() error {
 
 	scheduleCtx, cancelSchedule := context.WithCancel(context.Background())
 	go s.runUpdateSchedule(scheduleCtx)
+	go s.runZoneMarker(scheduleCtx)
 
 	s.mu.Lock()
 	s.stopSchedule = cancelSchedule
 	s.listener = ln
 	s.httpServer = &http.Server{
-		Handler:      s.Routes(),
+		Handler:      hostGuard(s.Routes()),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 	}

@@ -4,6 +4,19 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+### Security
+
+- A download no longer sends cookies to another site. The extension used to add the cookies of the current page or the first redirect, including HttpOnly session cookies, to the request for the final host. It now reads only the final host's cookies, and the daemon drops them if a redirect leaves that host or drops from HTTPS to HTTP. The exclusion list also covers a download's final address and right-click downloads.
+- A page from another local web server can no longer use the API, so it cannot start a program. Only the dashboard on Conduit's own port and the Chrome extension have the whole API. Firefox add-ons can only do what the extension does, because the daemon cannot tell them apart.
+- `enginePath` can only be changed by editing `config.json`.
+- A crafted link can no longer add aria2 options or request headers through a line break in a filename or header.
+- A download no longer overwrites an existing smaller file of the same name. It takes a new name.
+- Requests that name another host are refused, which stops DNS rebinding.
+- On Windows, finished downloads get the Mark of the Web, so SmartScreen checks them as it does browser downloads. The dashboard asks before it opens a file that runs code.
+- The dashboard sends a Content Security Policy and other security headers, and other sites can no longer frame it. Request bodies are limited to 1 MiB.
+- The aria2 RPC secret is no longer on the command line. On Linux the config directory, which holds download cookies in `aria2.session`, is private to the user.
+- Builds use Go 1.27.3, for GO-2026-6809. GitHub Actions are pinned to commit SHAs.
+
 ## [1.2.2] - 2026-11-03
 
 ### Changed

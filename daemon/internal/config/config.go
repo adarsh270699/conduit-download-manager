@@ -237,6 +237,11 @@ func (m *Manager) Patch(data []byte) (Config, error) {
 	if err := json.Unmarshal(data, &next); err != nil {
 		return m.cfg, fmt.Errorf("%w: %v", ErrInvalid, err)
 	}
+	// This value names a program to run, so it cannot come through the API. A
+	// client may still send back the value it read.
+	if strings.TrimSpace(next.EnginePath) != m.cfg.EnginePath {
+		return m.cfg, fmt.Errorf("%w: enginePath can only be changed by editing config.json", ErrInvalid)
+	}
 	return m.applyLocked(next)
 }
 
@@ -247,6 +252,10 @@ func (m *Manager) applyLocked(newCfg Config) (Config, error) {
 	// A save that does not name a theme keeps the current one.
 	if newCfg.Theme == "" {
 		newCfg.Theme = m.cfg.Theme
+	}
+	// aria2 stores this value on one line of its session file.
+	if strings.ContainsAny(newCfg.DownloadDir, "\r\n\x00") {
+		return m.cfg, fmt.Errorf("%w: downloadDir must not contain line breaks", ErrInvalid)
 	}
 	newCfg.EnginePath = strings.TrimSpace(newCfg.EnginePath)
 	if newCfg.EnginePath != "" && !filepath.IsAbs(newCfg.EnginePath) {

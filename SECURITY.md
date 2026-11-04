@@ -21,9 +21,13 @@ Do not include real cookies, session tokens, private download URLs, or personal 
 Conduit is a local-only application:
 
 - The daemon listens on `127.0.0.1` only. The API has no remote authentication and must not be exposed through a reverse proxy, port forward, container port mapping, or public tunnel.
-- Browser requests are checked against the dashboard's loopback origin, the Wails desktop asset origin, the Chrome extension ID derived from the pinned `key` in `extension/manifest.json`, and the `moz-extension://` scheme (Firefox assigns a per-profile UUID rather than the add-on ID). Requests from unknown website origins are rejected before handlers run.
-- The internal aria2 RPC port uses a per-launch random secret and verifies engine ownership before attaching or stopping a process.
-- Download URLs are restricted to HTTP, HTTPS, and FTP at the API boundary.
+- Requests must name a loopback host, which blocks DNS rebinding. Browser requests are checked against the dashboard's own origin (this daemon's port only) and the Chrome extension ID derived from the pinned `key` in `extension/manifest.json`. Requests from any other origin, including pages from other local web servers, are rejected before handlers run.
+- Firefox assigns each install a random UUID, so the daemon cannot tell Conduit from another add-on. `moz-extension://` origins can only do what the extension does: read status, list and add downloads, pause, resume, or remove them without deleting files, and change the theme. The Wails bootstrap page can only read `/api/health`. Another installed Firefox add-on can therefore see download URLs and add downloads; it cannot start a program, change settings, or delete files.
+- The internal aria2 RPC port uses a per-launch random secret, passed through a private file rather than the command line, and verifies engine ownership before attaching or stopping a process.
+- Download URLs are restricted to HTTP, HTTPS, and FTP at the API boundary. Filenames, cookies, referrers, user agents, and folders cannot hold line breaks, which aria2 would read as separate options or headers.
+- A download sends only the cookies its final host would receive in the browser. If the daemon sees a redirect leave that host, or drop from HTTPS to HTTP, it starts from the redirect target with no cookies. aria2 fetches the URL itself, so a server that answers aria2 differently from that check is not covered.
+- `enginePath` names a program to run, so it can only be set by editing `config.json`.
+- On Windows, finished downloads get the Mark of the Web, and the dashboard asks before opening a file that runs code.
 - Any local process running as the same user can call the local API, read the config directory, or control the user's downloads. This is outside Conduit's threat model.
 
 Reports about the following are in scope:
