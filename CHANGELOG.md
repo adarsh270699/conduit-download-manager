@@ -17,6 +17,10 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 - The aria2 RPC secret is no longer on the command line. On Linux the config directory, which holds download cookies in `aria2.session`, is private to the user.
 - Builds use Go 1.27.3, for GO-2026-6809. GitHub Actions are pinned to commit SHAs.
 
+### Fixed
+
+- In a download's progress row, the byte counts no longer run under the connection count. When the count needs the room, the byte counts move to their own line on the right.
+
 ## [1.2.2] - 2026-11-03
 
 ### Changed
