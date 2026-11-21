@@ -1021,9 +1021,11 @@ body {
 
 .progress-stats {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: var(--space-2);
+  row-gap: 2px;
   font-size: 0.75rem;
   color: var(--text-secondary);
   font-family: var(--font-mono);
@@ -1036,6 +1038,13 @@ body {
   align-items: center;
   gap: 6px;
   min-width: 0;
+}
+
+/* The byte counts never break inside a figure. When the connection badge needs the room, they drop to
+   their own line on the right instead of running under the badge. */
+.progress-bytes {
+  white-space: nowrap;
+  margin-left: auto;
 }
 
 .conns-badge {

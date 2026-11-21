@@ -4,6 +4,8 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-11-22
+
 ### Security
 
 - A download no longer sends cookies to another site. The extension used to add the cookies of the current page or the first redirect, including HttpOnly session cookies, to the request for the final host. It now reads only the final host's cookies, and the daemon drops them if a redirect leaves that host or drops from HTTPS to HTTP. The exclusion list also covers a download's final address and right-click downloads.
@@ -16,6 +18,10 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 - The dashboard sends a Content Security Policy and other security headers, and other sites can no longer frame it. Request bodies are limited to 1 MiB.
 - The aria2 RPC secret is no longer on the command line. On Linux the config directory, which holds download cookies in `aria2.session`, is private to the user.
 - Builds use Go 1.27.3, for GO-2026-6809. GitHub Actions are pinned to commit SHAs.
+
+### Fixed
+
+- In a download's progress row, the byte counts no longer run under the connection count. When the count needs the room, the byte counts move to their own line on the right.
 
 ## [1.2.2] - 2026-11-03
 
@@ -98,7 +104,8 @@ All notable changes to Conduit are recorded here. The format follows [Keep a Cha
 - Download URLs are limited to HTTP, HTTPS, and FTP.
 - The internal aria2 RPC port uses a per-launch random secret and checks engine ownership before use.
 
-[Unreleased]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.2.3...HEAD
+[1.2.3]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/adarsh270699/conduit-download-manager/compare/v1.1.1...v1.2.0
